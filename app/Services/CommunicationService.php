@@ -15,20 +15,62 @@ class CommunicationService
      */
     public function sendSms($userId, $phone, $message, $projectId = null)
     {
-        // Webasist API entegrasyonu (Şartname 11.19)
-        // Gerçek API anahtarlarını buraya ekleyebilirsiniz.
-        
-        Log::info("SMS to {$phone} (Project: {$projectId}): {$message}");
+        $apiKey = env('WEBASIST_API_KEY');
+        $apiSecret = env('WEBASIST_API_SECRET');
+        $senderName = env('WEBASIST_SENDER_NAME', 'KADEME');
+        $url = env('WEBASIST_SMS_URL', 'https://api.webasist.com.tr/sms/send');
 
-        return CommunicationLog::create([
-            'user_id' => ($userId && $userId > 0) ? $userId : null,
-            'project_id' => $projectId,
-            'type' => 'sms',
-            'recipient' => $phone,
-            'content' => $message,
-            'status' => 'sent',
-            'provider' => 'webasist'
-        ]);
+        // Eğer sistemde API key girilmemişse Development mantığıyla sadece Log at (Para gitmesin diye)
+        if (!$apiKey) {
+            Log::info("[MOCK SMS] to {$phone} (Project: {$projectId}): {$message}");
+            return CommunicationLog::create([
+                'user_id' => ($userId && $userId > 0) ? $userId : null,
+                'project_id' => $projectId,
+                'type' => 'sms',
+                'recipient' => $phone,
+                'content' => "[MOCK] " . $message,
+                'status' => 'sent',
+                'provider' => 'webasist'
+            ]);
+        }
+
+        try {
+            // Gerçek API İsteği (Webasist Dokümantasyonuna Göre HTTP POST)
+            $response = \Illuminate\Support\Facades\Http::timeout(10)->post($url, [
+                'api_key' => $apiKey,
+                'api_secret' => $apiSecret,
+                'sender' => $senderName,
+                'phones' => [$phone],
+                'message' => $message
+            ]);
+
+            if ($response->successful()) {
+                return CommunicationLog::create([
+                    'user_id' => ($userId && $userId > 0) ? $userId : null,
+                    'project_id' => $projectId,
+                    'type' => 'sms',
+                    'recipient' => $phone,
+                    'content' => $message,
+                    'status' => 'sent',
+                    'provider' => 'webasist'
+                ]);
+            } else {
+                throw new \Exception("Webasist Error: " . $response->body());
+            }
+
+        } catch (\Exception $e) {
+            Log::error("Real SMS failed to {$phone}: " . $e->getMessage());
+            
+            return CommunicationLog::create([
+                'user_id' => ($userId && $userId > 0) ? $userId : null,
+                'project_id' => $projectId,
+                'type' => 'sms',
+                'recipient' => $phone,
+                'content' => $message . "\n\nHATA: " . $e->getMessage(),
+                'status' => 'failed',
+                'provider' => 'webasist'
+            ]);
+        }
     }
 
     /**
