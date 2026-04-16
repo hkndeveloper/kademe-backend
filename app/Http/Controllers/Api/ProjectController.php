@@ -10,12 +10,12 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         $query = Project::withCount(['applications' => function($q) {
             $q->where('status', 'accepted');
         }]);
 
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+        if ($user && ($user->hasRole('coordinator') || $user->hasRole('staff')) && !$user->hasRole('super-admin')) {
             $query->whereHas('coordinators', function($q) use ($user) {
                 $q->where('user_id', $user->id);
             });
@@ -100,7 +100,7 @@ class ProjectController extends Controller
             ->with(['activities', 'applications.user.participantProfile', 'coordinators'])
             ->firstOrFail();
 
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         if ($user && ($user->hasRole('coordinator') || $user->hasRole('staff')) && !$user->hasRole('super-admin')) {
             if (!$project->coordinators->contains($user->id)) {
                 return response()->json(['message' => 'Bu projeye erişim yetkiniz yok.'], 403);
