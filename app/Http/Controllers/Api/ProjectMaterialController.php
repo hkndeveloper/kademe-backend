@@ -81,4 +81,21 @@ class ProjectMaterialController extends Controller
 
         return Storage::disk('local')->download($material->file_path, $material->title . '.' . $material->file_type);
     }
+    public function destroy($id)
+    {
+        $material = ProjectMaterial::findOrFail($id);
+
+        $user = auth()->user();
+        if ($user) {
+            $this->authorize('uploadMaterials', \App\Models\Project::findOrFail($material->project_id));
+        }
+
+        if ($material->file_path && Storage::disk('local')->exists($material->file_path)) {
+            Storage::disk('local')->delete($material->file_path);
+        }
+
+        $material->delete();
+
+        return response()->json(['message' => 'Materyal başarıyla silindi.']);
+    }
 }

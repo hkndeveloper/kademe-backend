@@ -113,6 +113,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/projects/{project}/materials', [\App\Http\Controllers\Api\ProjectMaterialController::class, 'index']);
     Route::post('/projects/{project}/materials', [\App\Http\Controllers\Api\ProjectMaterialController::class, 'store']);
     Route::get('/materials/{id}/download', [\App\Http\Controllers\Api\ProjectMaterialController::class, 'download']);
+    Route::delete('/materials/{id}', [\App\Http\Controllers\Api\ProjectMaterialController::class, 'destroy']);
     
     // Forum (Madde 11.18)
     Route::get('/projects/{project}/forum', [\App\Http\Controllers\Api\ForumController::class, 'index']);
