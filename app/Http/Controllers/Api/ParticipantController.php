@@ -106,19 +106,35 @@ class ParticipantController extends Controller
     public function update(Request $request, ParticipantProfile $participant)
     {
         $validated = $request->validate([
-            'tc_no' => 'nullable|string|max:11',
+            'name' => 'nullable|string|max:255',
+            'email' => 'nullable|email|unique:users,email,' . $participant->user_id,
+            'password' => 'nullable|string|min:8',
+            'tc_no' => 'nullable|string|max:11|unique:participant_profiles,tc_no,' . $participant->id,
             'phone' => 'nullable|string',
             'university' => 'nullable|string',
             'department' => 'nullable|string',
             'class' => 'nullable|string',
+            'hometown' => 'nullable|string',
+            'period' => 'nullable|string',
             'credits' => 'nullable|integer',
             'status' => 'nullable|in:active,passive,alumni,blacklisted,failed',
-            'digital_cv' => 'nullable|array', // JSON olarak saklanir
+            'digital_cv' => 'nullable|array',
         ]);
 
+        // Katılımcı Profili Güncelleme
         $participant->update($validated);
 
-        return response()->json($participant);
+        // Bağlı Kullanıcı Hesabını Güncelleme (Section 11.2)
+        $userData = [];
+        if ($request->filled('name')) $userData['name'] = $validated['name'];
+        if ($request->filled('email')) $userData['email'] = $validated['email'];
+        if ($request->filled('password')) $userData['password'] = \Hash::make($validated['password']);
+
+        if (!empty($userData)) {
+            $participant->user()->update($userData);
+        }
+
+        return response()->json($participant->load('user'));
     }
     
     /**
