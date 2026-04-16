@@ -30,7 +30,25 @@ class AnnouncementController extends Controller
             'project_id' => 'nullable|exists:projects,id'
         ]);
 
-        $users = User::whereIn('id', $validated['user_ids'])->with('participantProfile')->get();
+        $user = auth()->user();
+        $isCoordinator = $user->hasRole('coordinator') && !$user->hasRole('super-admin');
+        
+        $query = User::whereIn('id', $validated['user_ids'])->with('participantProfile');
+
+        // Güvenlik Kilidi (Madde 5.2): Koordinatör sadece kendi projelerindeki öğrencilere mesaj atabilir.
+        if ($isCoordinator) {
+            $coordinatedProjectIds = $user->coordinatedProjects->pluck('id');
+            $query->whereHas('applications', function($q) use ($coordinatedProjectIds) {
+                $q->whereIn('project_id', $coordinatedProjectIds);
+            });
+        }
+
+        $users = $query->get();
+        
+        if ($users->count() === 0) {
+             return response()->json(['message' => 'Geçerli alıcı bulunamadı veya bu kişilere mesaj atma yetkiniz yok.'], 403);
+        }
+
         $count = 0;
         $projectId = $validated['project_id'] ?? null;
 
