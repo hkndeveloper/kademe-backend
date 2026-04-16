@@ -10,7 +10,17 @@ class Project extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'description', 'location', 'capacity', 'logo', 'is_active'];
+    protected $fillable = [
+        'name', 'slug', 'description', 'location', 'capacity', 'logo', 'is_active',
+        'application_deadline', 'format', 'period', 'sub_description', 'timeline', 'documents'
+    ];
+
+    protected $casts = [
+        'timeline' => 'array',
+        'documents' => 'array',
+        'is_active' => 'boolean',
+        'application_deadline' => 'date'
+    ];
 
     public function activities()
     {

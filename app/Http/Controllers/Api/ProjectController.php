@@ -46,7 +46,15 @@ class ProjectController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'location' => 'nullable|string',
+            'capacity' => 'nullable|integer',
             'logo' => 'nullable|string',
+            'application_deadline' => 'nullable|date',
+            'format' => 'nullable|string',
+            'period' => 'nullable|string',
+            'sub_description' => 'nullable|string',
+            'timeline' => 'nullable|array',
+            'documents' => 'nullable|array',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -66,7 +74,7 @@ class ProjectController extends Controller
         $acceptedApplications = $project->applications->where('status', 'accepted');
         $participantsCount = $acceptedApplications->count();
         
-        // Üniversite özeti (En popüler olanı bul)
+        // Üniversite özeti
         $topInfo = "Aktif Katılımcı Yok";
         if ($participantsCount > 0) {
             $unis = $acceptedApplications->map(function($app) {
@@ -77,7 +85,7 @@ class ProjectController extends Controller
             $topInfo = "{$topUni} • En Çok Katılım";
         }
 
-        // Project objesine ekle (toarray'e dahil olması için appends veya manuel)
+        // Project objesine ekle
         $projectData = $project->toArray();
         $projectData['stats'] = [
             'participants_count' => $participantsCount,
@@ -92,8 +100,16 @@ class ProjectController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
+            'location' => 'nullable|string',
+            'capacity' => 'nullable|integer',
             'logo' => 'nullable|string',
             'is_active' => 'boolean',
+            'application_deadline' => 'nullable|date',
+            'format' => 'nullable|string',
+            'period' => 'nullable|string',
+            'sub_description' => 'nullable|string',
+            'timeline' => 'nullable|array',
+            'documents' => 'nullable|array',
         ]);
 
         if (isset($validated['name'])) {
