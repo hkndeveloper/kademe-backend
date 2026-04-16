@@ -6,11 +6,19 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class DummyUsersSeeder extends Seeder
 {
     public function run()
     {
+        // Önce rollerin varlığından emin olalım
+        $roles = ['super-admin', 'coordinator', 'student', 'alumni'];
+        foreach ($roles as $roleName) {
+            Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'api']);
+            Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+        }
+
         $users = [
             [
                 'name' => 'KADEME Üst Admin',
@@ -42,9 +50,10 @@ class DummyUsersSeeder extends Seeder
                     'password' => Hash::make('password123'),
                 ]
             );
-            $user->assignRole($u['role']);
+            
+            // Mevcut tüm rolleri temizleyip yenisini atayalım (garanti olsun)
+            $user->syncRoles([$u['role']]);
 
-            // Student ve Alumni için profil de oluşturalım
             if (in_array($u['role'], ['student', 'alumni'])) {
                 \App\Models\ParticipantProfile::updateOrCreate(
                     ['user_id' => $user->id],
