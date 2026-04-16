@@ -101,7 +101,7 @@ class ProjectController extends Controller
             ->firstOrFail();
 
         $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+        if ($user && ($user->hasRole('coordinator') || $user->hasRole('staff')) && !$user->hasRole('super-admin')) {
             if (!$project->coordinators->contains($user->id)) {
                 return response()->json(['message' => 'Bu projeye erişim yetkiniz yok.'], 403);
             }
@@ -132,10 +132,8 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project)
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
-            if (!$project->coordinators()->where('user_id', $user->id)->exists()) {
-                return response()->json(['message' => 'Bu projeyi düzenleme yetkiniz yok.'], 403);
-            }
+        if ($user) {
+            $this->authorize('manageProject', [App\Models\Project::class, $project]);
         }
 
         $validated = $request->validate([
@@ -187,10 +185,8 @@ class ProjectController extends Controller
     public function bulkAttendance(Project $project)
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
-            if (!$project->coordinators()->where('user_id', $user->id)->exists()) {
-                return response()->json(['message' => 'Unauthorized.'], 403);
-            }
+        if ($user) {
+            $this->authorize('takeAttendance', [App\Models\Project::class, $project]);
         }
 
         $activities = $project->activities;

@@ -52,10 +52,8 @@ class ActivityController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
-            if (!$user->coordinatedProjects->contains($request->project_id)) {
-                return response()->json(['message' => 'Bu projeye faaliyet ekleme yetkiniz yok.'], 403);
-            }
+        if ($user) {
+            $this->authorize('manageProject', [App\Models\Project::class, \App\Models\Project::findOrFail($request->project_id)]);
         }
 
         $validated = $request->validate([
@@ -81,9 +79,17 @@ class ActivityController extends Controller
     public function show(Activity $activity)
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
-            if (!$user->coordinatedProjects->contains($activity->project_id)) {
-                return response()->json(['message' => 'Unauthorized.'], 403);
+        if ($user) {
+            // Sadece koordinatör/yetkili/admin görebilir veya activity'nin projesinde olanlara manage istermeyiz, sadece auth kontrolü.
+            // Ama spec'e göre herkes kendi indexinden görüyor. Admin/Koordinatör detayını görebilir.
+            // Fakat read/view yetkisi public/studentlara açık olabilir. store, update, destroy manage_project istiyor.
+            // Burada viewAny yerine manage_project izinleri varsa bypass ederiz, student ise kendi projectini görür vs.
+            // Fakat route auth:sanctum altında zaten. Şimdilik var olan auth mekanizmasını policy formatına uygun yazıyoruz.
+            // Ancak read olayı ActivityPolicy üzerinden de yazılabilirdi. Basit tutalım, coordinator spec in the old code.
+            
+            // Eğer admin veya coordinator (yani project manage) ise kontrol et:
+            if (!$user->hasRole('student') && !$user->hasRole('guest') && !$user->hasRole('alumni')) {
+                 $this->authorize('takeAttendance', [App\Models\Project::class, $activity->project]);
             }
         }
         return response()->json($activity->load(['project', 'attendances']));
@@ -92,10 +98,8 @@ class ActivityController extends Controller
     public function update(Request $request, Activity $activity)
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
-            if (!$user->coordinatedProjects->contains($activity->project_id)) {
-                return response()->json(['message' => 'Bu faaliyeti düzenleme yetkiniz yok.'], 403);
-            }
+        if ($user) {
+            $this->authorize('manageProject', [App\Models\Project::class, $activity->project]);
         }
 
         $validated = $request->validate([
@@ -120,10 +124,8 @@ class ActivityController extends Controller
     public function destroy(Activity $activity)
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
-            if (!$user->coordinatedProjects->contains($activity->project_id)) {
-                return response()->json(['message' => 'Bu faaliyeti silme yetkiniz yok.'], 403);
-            }
+        if ($user) {
+            $this->authorize('manageProject', [App\Models\Project::class, $activity->project]);
         }
 
         $activity->delete();

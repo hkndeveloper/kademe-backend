@@ -127,11 +127,8 @@ class AttendanceController extends Controller
         $user = User::findOrFail($validated['user_id']);
         $activity = Activity::findOrFail($validated['activity_id']);
         $admin = auth()->user();
-
-        if ($admin && $admin->hasRole('coordinator') && !$admin->hasRole('super-admin')) {
-            if (!$admin->coordinatedProjects->contains($activity->project_id)) {
-                return response()->json(['message' => 'Bu faaliyet için yoklama girme yetkiniz yok.'], 403);
-            }
+        if ($admin) {
+            $this->authorize('takeAttendance', [App\Models\Project::class, $activity->project]);
         }
 
         // Mevcut kaydı güncelle veya oluştur

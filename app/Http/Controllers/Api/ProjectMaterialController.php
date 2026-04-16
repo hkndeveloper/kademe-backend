@@ -15,10 +15,8 @@ class ProjectMaterialController extends Controller
     public function index($projectId)
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
-            if (!$user->coordinatedProjects->contains($projectId)) {
-                return response()->json(['message' => 'Bu projenin materyallerini görme yetkiniz yok.'], 403);
-            }
+        if ($user) {
+            $this->authorize('uploadMaterials', [App\Models\Project::class, \App\Models\Project::findOrFail($projectId)]);
         }
 
         $materials = ProjectMaterial::where('project_id', $projectId)->get();
@@ -31,10 +29,8 @@ class ProjectMaterialController extends Controller
     public function store(Request $request, $projectId)
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
-            if (!$user->coordinatedProjects->contains($projectId)) {
-                return response()->json(['message' => 'Bu projeye materyal yükleme yetkiniz yok.'], 403);
-            }
+        if ($user) {
+            $this->authorize('uploadMaterials', [App\Models\Project::class, \App\Models\Project::findOrFail($projectId)]);
         }
 
         $request->validate([

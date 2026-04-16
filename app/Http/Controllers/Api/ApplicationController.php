@@ -110,10 +110,8 @@ class ApplicationController extends Controller
     public function updateStatus(Request $request, Application $application)
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
-            if (!$user->coordinatedProjects->contains($application->project_id)) {
-                return response()->json(['message' => 'Bu başvuruyu yönetme yetkiniz yok.'], 403);
-            }
+        if ($user) {
+            $this->authorize('evaluateApplications', [App\Models\Project::class, $application->project]);
         }
 
         $request->validate([
