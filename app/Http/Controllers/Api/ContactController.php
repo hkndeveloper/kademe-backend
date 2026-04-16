@@ -31,15 +31,19 @@ class ContactController extends Controller
         try {
             // 1. Yöneticiye Bildirim Gönder (config üzerinden alıyoruz)
             $adminEmail = config('mail.from.address', 'admin@kademe.org');
-            $this->commService->sendEmail(
+            $adminLog = $this->commService->sendEmail(
                 null,
                 $adminEmail,
                 "Yeni İletişim Formu Mesajı: " . $validated['subject'],
                 "Gönderen: {$validated['name']} ({$validated['email']})\nKonu: {$validated['subject']}\n\nMesaj:\n{$validated['message']}"
             );
 
+            if ($adminLog->status === 'failed') {
+                throw new \Exception("SMTP Hatası: Sistem yöneticiye e-posta gönderemedi. Cihaz / Şifre ayarlarınızı kontrol edin.");
+            }
+
             // 2. Kullanıcıya Teşekkür Gönder
-            $this->commService->sendEmail(
+            $userLog = $this->commService->sendEmail(
                 null,
                 $validated['email'],
                 "Mesajınız Alındı - KADEME",
@@ -52,7 +56,7 @@ class ContactController extends Controller
         } catch (\Exception $e) {
             Log::error('Contact form error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Mesaj gönderilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.'
+                'message' => 'Hata: ' . $e->getMessage()
             ], 500);
         }
     }
