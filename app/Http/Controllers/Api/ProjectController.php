@@ -133,7 +133,7 @@ class ProjectController extends Controller
     {
         $user = auth()->user();
         if ($user) {
-            $this->authorize('manageProject', [App\Models\Project::class, $project]);
+            $this->authorize('manageProject', $project);
         }
 
         $validated = $request->validate([
@@ -186,7 +186,7 @@ class ProjectController extends Controller
     {
         $user = auth()->user();
         if ($user) {
-            $this->authorize('takeAttendance', [App\Models\Project::class, $project]);
+            $this->authorize('takeAttendance', $project);
         }
 
         $activities = $project->activities;

@@ -128,7 +128,7 @@ class AttendanceController extends Controller
         $activity = Activity::findOrFail($validated['activity_id']);
         $admin = auth()->user();
         if ($admin) {
-            $this->authorize('takeAttendance', [App\Models\Project::class, $activity->project]);
+            $this->authorize('takeAttendance', $activity->project);
         }
 
         // Mevcut kaydı güncelle veya oluştur

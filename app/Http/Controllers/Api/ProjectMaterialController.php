@@ -16,7 +16,7 @@ class ProjectMaterialController extends Controller
     {
         $user = auth()->user();
         if ($user) {
-            $this->authorize('uploadMaterials', [App\Models\Project::class, \App\Models\Project::findOrFail($projectId)]);
+            $this->authorize('uploadMaterials', \App\Models\Project::findOrFail($projectId));
         }
 
         $materials = ProjectMaterial::where('project_id', $projectId)->get();
@@ -30,7 +30,7 @@ class ProjectMaterialController extends Controller
     {
         $user = auth()->user();
         if ($user) {
-            $this->authorize('uploadMaterials', [App\Models\Project::class, \App\Models\Project::findOrFail($projectId)]);
+            $this->authorize('uploadMaterials', \App\Models\Project::findOrFail($projectId));
         }
 
         $request->validate([

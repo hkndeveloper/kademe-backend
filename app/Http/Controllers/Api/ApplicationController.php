@@ -111,7 +111,7 @@ class ApplicationController extends Controller
     {
         $user = auth()->user();
         if ($user) {
-            $this->authorize('evaluateApplications', [App\Models\Project::class, $application->project]);
+            $this->authorize('evaluateApplications', $application->project);
         }
 
         $request->validate([

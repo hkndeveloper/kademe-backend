@@ -53,7 +53,7 @@ class ActivityController extends Controller
     {
         $user = auth()->user();
         if ($user) {
-            $this->authorize('manageProject', [App\Models\Project::class, \App\Models\Project::findOrFail($request->project_id)]);
+            $this->authorize('manageProject', \App\Models\Project::findOrFail($request->project_id));
         }
 
         $validated = $request->validate([
@@ -89,7 +89,7 @@ class ActivityController extends Controller
             
             // Eğer admin veya coordinator (yani project manage) ise kontrol et:
             if (!$user->hasRole('student') && !$user->hasRole('guest') && !$user->hasRole('alumni')) {
-                 $this->authorize('takeAttendance', [App\Models\Project::class, $activity->project]);
+                 $this->authorize('takeAttendance', $activity->project);
             }
         }
         return response()->json($activity->load(['project', 'attendances']));
@@ -99,7 +99,7 @@ class ActivityController extends Controller
     {
         $user = auth()->user();
         if ($user) {
-            $this->authorize('manageProject', [App\Models\Project::class, $activity->project]);
+            $this->authorize('manageProject', $activity->project);
         }
 
         $validated = $request->validate([
@@ -125,7 +125,7 @@ class ActivityController extends Controller
     {
         $user = auth()->user();
         if ($user) {
-            $this->authorize('manageProject', [App\Models\Project::class, $activity->project]);
+            $this->authorize('manageProject', $activity->project);
         }
 
         $activity->delete();
