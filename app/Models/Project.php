@@ -31,4 +31,9 @@ class Project extends Model
     {
         return $this->hasMany(Application::class);
     }
+
+    public function coordinators()
+    {
+        return $this->belongsToMany(User::class, 'project_coordinator');
+    }
 }

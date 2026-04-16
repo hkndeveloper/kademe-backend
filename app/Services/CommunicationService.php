@@ -13,15 +13,16 @@ class CommunicationService
     /**
      * SMS Gönderim Simülasyonu (Section 5.2)
      */
-    public function sendSms($userId, $phone, $message)
+    public function sendSms($userId, $phone, $message, $projectId = null)
     {
         // Webasist API entegrasyonu (Şartname 11.19)
         // Gerçek API anahtarlarını buraya ekleyebilirsiniz.
         
-        Log::info("SMS to {$phone}: {$message}");
+        Log::info("SMS to {$phone} (Project: {$projectId}): {$message}");
 
         return CommunicationLog::create([
             'user_id' => ($userId && $userId > 0) ? $userId : null,
+            'project_id' => $projectId,
             'type' => 'sms',
             'recipient' => $phone,
             'content' => $message,
@@ -33,7 +34,7 @@ class CommunicationService
     /**
      * Gerçek Email Gönderimi (Section 11.4)
      */
-    public function sendEmail($userId, $email, $subject, $content)
+    public function sendEmail($userId, $email, $subject, $content, $projectId = null)
     {
         try {
             $user = User::find($userId);
@@ -43,6 +44,7 @@ class CommunicationService
 
             return CommunicationLog::create([
                 'user_id' => ($userId && $userId > 0) ? $userId : null,
+                'project_id' => $projectId,
                 'type' => 'email',
                 'recipient' => $email,
                 'content' => "Subject: {$subject}\n\n{$content}",
@@ -54,6 +56,7 @@ class CommunicationService
             
             return CommunicationLog::create([
                 'user_id' => ($userId && $userId > 0) ? $userId : null,
+                'project_id' => $projectId,
                 'type' => 'email',
                 'recipient' => $email,
                 'content' => "Subject: {$subject}\n\n{$content}\n\nError: " . $e->getMessage(),

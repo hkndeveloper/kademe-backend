@@ -14,6 +14,13 @@ class ProjectMaterialController extends Controller
      */
     public function index($projectId)
     {
+        $user = auth()->user();
+        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            if (!$user->coordinatedProjects->contains($projectId)) {
+                return response()->json(['message' => 'Bu projenin materyallerini görme yetkiniz yok.'], 403);
+            }
+        }
+
         $materials = ProjectMaterial::where('project_id', $projectId)->get();
         return response()->json($materials);
     }
@@ -23,6 +30,13 @@ class ProjectMaterialController extends Controller
      */
     public function store(Request $request, $projectId)
     {
+        $user = auth()->user();
+        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            if (!$user->coordinatedProjects->contains($projectId)) {
+                return response()->json(['message' => 'Bu projeye materyal yükleme yetkiniz yok.'], 403);
+            }
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'type' => 'required|in:document,video,image',
@@ -35,7 +49,6 @@ class ProjectMaterialController extends Controller
         $fileType = null;
         $fileSize = null;
 
-        // If file is uploaded, store it
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $filePath = $file->store("projects/{$projectId}/materials", 'local');

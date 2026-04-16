@@ -10,10 +10,18 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        $projects = Project::withCount(['applications' => function($q) {
+        $user = auth()->user();
+        $query = Project::withCount(['applications' => function($q) {
             $q->where('status', 'accepted');
-        }])->get();
-        return response()->json($projects);
+        }]);
+
+        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            $query->whereHas('coordinators', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+
+        return response()->json($query->get());
     }
 
     public function getPublicStats()
@@ -22,7 +30,6 @@ class ProjectController extends Controller
         $projectsCount = \App\Models\Project::where('is_active', true)->count() ?? 0;
         $activitiesCount = \App\Models\Activity::count() ?? 0;
         
-        // Memnuniyet oranı dinamik (Feedback'lerden ortalama alınır, yoksa %100 default başlar)
         $satisfaction = 100;
         try {
             if (\Schema::hasTable('activity_feedback')) {
@@ -55,26 +62,36 @@ class ProjectController extends Controller
             'sub_description' => 'nullable|string',
             'timeline' => 'nullable|array',
             'documents' => 'nullable|array',
+            'coordinator_ids' => 'nullable|array',
+            'coordinator_ids.*' => 'exists:users,id',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
-
         $project = Project::create($validated);
 
-        return response()->json($project, 201);
+        if (isset($request->coordinator_ids)) {
+            $project->coordinators()->sync($request->coordinator_ids);
+        }
+
+        return response()->json($project->load('coordinators'), 201);
     }
 
     public function show($idOrSlug)
     {
         $project = Project::where(is_numeric($idOrSlug) ? 'id' : 'slug', $idOrSlug)
-            ->with(['activities', 'applications.user.participantProfile'])
+            ->with(['activities', 'applications.user.participantProfile', 'coordinators'])
             ->firstOrFail();
 
-        // İstatistikleri hesapla
+        $user = auth()->user();
+        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            if (!$project->coordinators->contains($user->id)) {
+                return response()->json(['message' => 'Bu projeye erişim yetkiniz yok.'], 403);
+            }
+        }
+
         $acceptedApplications = $project->applications->where('status', 'accepted');
         $participantsCount = $acceptedApplications->count();
         
-        // Üniversite özeti
         $topInfo = "Aktif Katılımcı Yok";
         if ($participantsCount > 0) {
             $unis = $acceptedApplications->map(function($app) {
@@ -85,7 +102,6 @@ class ProjectController extends Controller
             $topInfo = "{$topUni} • En Çok Katılım";
         }
 
-        // Project objesine ekle
         $projectData = $project->toArray();
         $projectData['stats'] = [
             'participants_count' => $participantsCount,
@@ -97,6 +113,13 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
+        $user = auth()->user();
+        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            if (!$project->coordinators()->where('user_id', $user->id)->exists()) {
+                return response()->json(['message' => 'Bu projeyi düzenleme yetkiniz yok.'], 403);
+            }
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
@@ -110,6 +133,8 @@ class ProjectController extends Controller
             'sub_description' => 'nullable|string',
             'timeline' => 'nullable|array',
             'documents' => 'nullable|array',
+            'coordinator_ids' => 'nullable|array',
+            'coordinator_ids.*' => 'exists:users,id',
         ]);
 
         if (isset($validated['name'])) {
@@ -118,11 +143,22 @@ class ProjectController extends Controller
 
         $project->update($validated);
 
-        return response()->json($project);
+        if (isset($request->coordinator_ids) && $user->hasRole('super-admin')) {
+            $project->coordinators()->sync($request->coordinator_ids);
+        }
+
+        return response()->json($project->load('coordinators'));
     }
 
     public function bulkAttendance(Project $project)
     {
+        $user = auth()->user();
+        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            if (!$project->coordinators()->where('user_id', $user->id)->exists()) {
+                return response()->json(['message' => 'Unauthorized.'], 403);
+            }
+        }
+
         $activities = $project->activities;
         $acceptedUserIds = $project->applications()->where('status', 'accepted')->pluck('user_id');
 
@@ -144,6 +180,10 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
+        if (!auth()->user()->hasRole('super-admin')) {
+            return response()->json(['message' => 'Sadece Üst Admin proje silebilir.'], 403);
+        }
+
         $project->delete();
         return response()->json(['message' => 'Proje silindi.']);
     }

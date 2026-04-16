@@ -95,14 +95,27 @@ class ApplicationController extends Controller
     // Adminin başvuruları listelemesi
     public function index(Request $request)
     {
-        // user.participantProfile ekleyerek telefon ve diger bilgileri yukluyoruz
-        $applications = Application::with(['user.participantProfile', 'project'])->latest()->get();
+        $user = auth()->user();
+        $query = Application::with(['user.participantProfile', 'project']);
+
+        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            $query->whereIn('project_id', $user->coordinatedProjects->pluck('id'));
+        }
+
+        $applications = $query->latest()->get();
         return response()->json($applications);
     }
 
-    // Adminin başvuruyu kabul/red/yedek etmesi (Otomatik Profil Dönüşümü - Section 11)
+    // Adminin başvuruyu kabul/red/yedek etmesi
     public function updateStatus(Request $request, Application $application)
     {
+        $user = auth()->user();
+        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            if (!$user->coordinatedProjects->contains($application->project_id)) {
+                return response()->json(['message' => 'Bu başvuruyu yönetme yetkiniz yok.'], 403);
+            }
+        }
+
         $request->validate([
             'status' => 'required|in:accepted,rejected,waitlisted'
         ]);

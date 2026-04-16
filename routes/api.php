@@ -59,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Admin & Coordinator Routes
     Route::get('/admin/stats', [\App\Http\Controllers\Api\AdminController::class, 'getStats']);
     Route::get('/admin/visual-analytics', [\App\Http\Controllers\Api\AdminController::class, 'getVisualAnalytics']); // Section 11.16
+    Route::get('/admin/coordinators', [\App\Http\Controllers\Api\AdminController::class, 'getCoordinators']);
     Route::post('/admin/users/{userId}/make-alumni', [\App\Http\Controllers\Api\AdminController::class, 'makeAlumni']);
     Route::get('/admin/announcements/logs', [\App\Http\Controllers\Api\AnnouncementController::class, 'getLogs']);
     Route::post('/admin/announcements/bulk-send', [\App\Http\Controllers\Api\AnnouncementController::class, 'bulkSend']);

@@ -27,20 +27,22 @@ class AnnouncementController extends Controller
             'user_ids.*' => 'exists:users,id',
             'subject' => 'required_if:type,email|string|max:255',
             'content' => 'required|string',
+            'project_id' => 'nullable|exists:projects,id'
         ]);
 
         $users = User::whereIn('id', $validated['user_ids'])->with('participantProfile')->get();
         $count = 0;
+        $projectId = $validated['project_id'] ?? null;
 
         foreach ($users as $user) {
             if ($validated['type'] === 'sms') {
                 $phone = $user->participantProfile ? $user->participantProfile->phone : null;
                 if ($phone) {
-                    $this->commService->sendSms($user->id, $phone, $validated['content']);
+                    $this->commService->sendSms($user->id, $phone, $validated['content'], $projectId);
                     $count++;
                 }
             } else {
-                $this->commService->sendEmail($user->id, $user->email, $validated['subject'] ?? 'KADEME Duyurusu', $validated['content']);
+                $this->commService->sendEmail($user->id, $user->email, $validated['subject'] ?? 'KADEME Duyurusu', $validated['content'], $projectId);
                 $count++;
             }
         }
@@ -56,7 +58,13 @@ class AnnouncementController extends Controller
      */
     public function getLogs()
     {
-        $logs = \App\Models\CommunicationLog::with('user')->latest()->paginate(50);
-        return response()->json($logs);
+        $user = auth()->user();
+        $query = \App\Models\CommunicationLog::with('user');
+
+        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            $query->whereIn('project_id', $user->coordinatedProjects->pluck('id'));
+        }
+
+        return response()->json($query->latest()->paginate(50));
     }
 }

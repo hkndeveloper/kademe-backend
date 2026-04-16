@@ -12,40 +12,7 @@ class ParticipantController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ParticipantProfile::with(['user' => function($q) {
-            $q->withCount('badges'); // Optional, the append uses badges count
-        }]);
-
-        // Gelişmiş Filtreleme (Section 7 & 8)
-        if ($request->filled('university')) {
-            $query->where('university', 'like', '%' . $request->university . '%');
-        }
-        
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('hometown')) {
-            $query->where('hometown', 'like', '%' . $request->hometown . '%');
-        }
-
-        if ($request->filled('period')) {
-            $query->where('period', $request->period);
-        }
-
-        if ($request->filled('min_age')) {
-            $query->where('age', '>=', $request->min_age);
-        }
-
-        if ($request->filled('search')) {
-            $search = mb_strtolower($request->search, 'UTF-8');
-            $query->where(function($q) use ($search) {
-                $q->whereHas('user', function($u) use ($search) {
-                    $u->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
-                })->orWhereRaw('LOWER(tc_no) LIKE ?', ["%{$search}%"]);
-            });
-        }
-
+        $query = $this->buildFilterQuery($request);
         $participants = $query->paginate(20);
 
         // KVKK Veri Maskeleme (Section 11.11)
@@ -261,7 +228,18 @@ class ParticipantController extends Controller
      */
     private function buildFilterQuery(Request $request)
     {
-        $query = ParticipantProfile::with('user');
+        $user = auth()->user();
+        $query = ParticipantProfile::with(['user' => function($q) {
+            $q->withCount('badges');
+        }]);
+
+        // Role Based Scoping (Section 5.1)
+        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            $coordinatedProjectIds = $user->coordinatedProjects->pluck('id');
+            $query->whereHas('user.applications', function($q) use ($coordinatedProjectIds) {
+                $q->whereIn('project_id', $coordinatedProjectIds);
+            });
+        }
 
         if ($request->filled('university')) {
             $query->where('university', 'like', '%' . $request->university . '%');

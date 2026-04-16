@@ -17,25 +17,44 @@ class AdminController extends Controller
      */
     public function getStats()
     {
+        $user = auth()->user();
+        $isCoordinator = $user->hasRole('coordinator') && !$user->hasRole('super-admin');
+        
         try {
-            $totalUsers = User::count();
-            $activeProjects = Project::where('is_active', true)->count();
-            $upcomingActivities = Activity::where('start_time', '>', now())->count();
-            
-            // Basit bir ortalama katılım oranı hesaplayalım
-            $totalAttendance = Attendance::count();
-            $attendedCount = Attendance::where('status', 'present')->count();
-            $avgAttendance = $totalAttendance > 0 ? round(($attendedCount / $totalAttendance) * 100) : 0;
+            if ($isCoordinator) {
+                $projectIds = $user->coordinatedProjects->pluck('id');
+                $totalUsers = User::whereHas('applications', function($q) use ($projectIds) {
+                    $q->whereIn('project_id', $projectIds);
+                })->count();
+                $activeProjects = Project::whereIn('id', $projectIds)->where('is_active', true)->count();
+                $upcomingActivities = Activity::whereIn('project_id', $projectIds)->where('start_time', '>', now())->count();
+                
+                $totalAttendance = Attendance::whereHas('activity', function($q) use ($projectIds) {
+                    $q->whereIn('project_id', $projectIds);
+                })->count();
+                $attendedCount = Attendance::whereHas('activity', function($q) use ($projectIds) {
+                    $q->whereIn('project_id', $projectIds);
+                })->where('status', 'present')->count();
+                
+                $pendingApplications = Application::whereIn('project_id', $projectIds)->where('status', 'pending')->count();
+                $totalMaterials = \App\Models\ProjectMaterial::whereIn('project_id', $projectIds)->count();
+            } else {
+                $totalUsers = User::count();
+                $activeProjects = Project::where('is_active', true)->count();
+                $upcomingActivities = Activity::where('start_time', '>', now())->count();
+                $totalAttendance = Attendance::count();
+                $attendedCount = Attendance::where('status', 'present')->count();
+                $pendingApplications = Application::where('status', 'pending')->count();
+                $totalMaterials = \App\Models\ProjectMaterial::count();
+            }
 
-            $pendingApplications = Application::where('status', 'pending')->count();
-            $totalMaterials = \App\Models\ProjectMaterial::count();
+            $avgAttendance = $totalAttendance > 0 ? round(($attendedCount / $totalAttendance) * 100) : 0;
         } catch (\Exception $e) {
-            // Tablo henüz oluşturulmamışsa veya DB hatası varsa güvenli varsayılanlar döndür
             \Illuminate\Support\Facades\Log::error('Admin stats hatası: ' . $e->getMessage());
             return response()->json([
-                'totalUsers' => $totalUsers ?? 0,
-                'activeProjects' => $activeProjects ?? 0,
-                'upcomingActivities' => $upcomingActivities ?? 0,
+                'totalUsers' => 0,
+                'activeProjects' => 0,
+                'upcomingActivities' => 0,
                 'avgAttendance' => '0%',
                 'pendingApplications' => 0,
                 'totalMaterials' => 0,
@@ -84,8 +103,16 @@ class AdminController extends Controller
      */
     public function getVisualAnalytics()
     {
-        // Project occupancy rates
-        $projects = Project::withCount('applications')->get();
+        $user = auth()->user();
+        $isCoordinator = $user->hasRole('coordinator') && !$user->hasRole('super-admin');
+
+        $query = Project::withCount('applications');
+        if ($isCoordinator) {
+            $projectIds = $user->coordinatedProjects->pluck('id');
+            $query->whereIn('id', $projectIds);
+        }
+        $projects = $query->get();
+
         $occupancyData = $projects->map(function ($project) {
             $acceptedCount = Application::where('project_id', $project->id)
                 ->where('status', 'accepted')
@@ -105,20 +132,22 @@ class AdminController extends Controller
         });
 
         // SMS expenses (real data from CommunicationLogs)
-        $totalSms = \App\Models\CommunicationLog::where('type', 'sms')->count();
-        $monthlySms = \App\Models\CommunicationLog::where('type', 'sms')
-            ->where('created_at', '>=', now()->startOfMonth())
-            ->count();
+        $smsQuery = \App\Models\CommunicationLog::where('type', 'sms');
+        if ($isCoordinator) {
+            $smsQuery->whereIn('project_id', $user->coordinatedProjects->pluck('id'));
+        }
+
+        $totalSms = $smsQuery->count();
+        $monthlySms = (clone $smsQuery)->where('created_at', '>=', now()->startOfMonth())->count();
         $costPerSms = 0.15; // TRY (Şartname 11.19 / Webasist birim maliyet)
 
         $smsExpenses = [
             'total_sent' => $totalSms,
             'monthly_cost' => $monthlySms * $costPerSms,
             'by_project' => $projects->map(function ($project) {
-                // Not: CommunicationLog tablosu proje_id tutmadığı için şimdilik 0 veya genel sayı tutuyoruz.
                 return [
                     'project_name' => $project->name,
-                    'sms_count' => 0
+                    'sms_count' => \App\Models\CommunicationLog::where('project_id', $project->id)->where('type', 'sms')->count()
                 ];
             })
         ];
@@ -127,5 +156,11 @@ class AdminController extends Controller
             'occupancy_rates' => $occupancyData,
             'sms_expenses' => $smsExpenses
         ]);
+    }
+
+    public function getCoordinators()
+    {
+        $coordinators = User::role('coordinator')->get(['id', 'name', 'email']);
+        return response()->json($coordinators);
     }
 }

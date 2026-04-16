@@ -91,4 +91,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Attendance::class);
     }
+
+    public function coordinatedProjects()
+    {
+        return $this->belongsToMany(Project::class, 'project_coordinator');
+    }
 }
