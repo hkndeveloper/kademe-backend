@@ -52,24 +52,42 @@ class ProjectController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'required|string',
+            'sub_description' => 'nullable|string',
             'location' => 'nullable|string',
             'capacity' => 'nullable|integer',
-            'logo' => 'nullable|string',
-            'application_deadline' => 'nullable|date',
             'format' => 'nullable|string',
             'period' => 'nullable|string',
-            'sub_description' => 'nullable|string',
-            'timeline' => 'nullable|array',
-            'documents' => 'nullable|array',
+            'application_deadline' => 'nullable|date',
+            'is_active' => 'boolean',
+            'timeline' => 'nullable', 
             'coordinator_ids' => 'nullable|array',
             'coordinator_ids.*' => 'exists:users,id',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
+
+        if (is_string($request->timeline)) {
+            $validated['timeline'] = json_decode($request->timeline, true);
+        }
+
+        // Handle File Uploads - 11.4 / 9.0 Belgeler
+        $documentList = [];
+        if ($request->hasFile('document_files')) {
+            foreach ($request->file('document_files') as $index => $file) {
+                $title = $request->document_titles[$index] ?? $file->getClientOriginalName();
+                $path = $file->store('projects/documents', 'public');
+                $documentList[] = [
+                    'title' => $title,
+                    'url' => asset('storage/' . $path)
+                ];
+            }
+        }
+        $validated['documents'] = $documentList;
+
         $project = Project::create($validated);
 
-        if (isset($request->coordinator_ids)) {
+        if ($request->has('coordinator_ids')) {
             $project->coordinators()->sync($request->coordinator_ids);
         }
 
@@ -122,17 +140,15 @@ class ProjectController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'sometimes|required|string',
+            'sub_description' => 'nullable|string',
             'location' => 'nullable|string',
             'capacity' => 'nullable|integer',
-            'logo' => 'nullable|string',
-            'is_active' => 'boolean',
-            'application_deadline' => 'nullable|date',
             'format' => 'nullable|string',
             'period' => 'nullable|string',
-            'sub_description' => 'nullable|string',
-            'timeline' => 'nullable|array',
-            'documents' => 'nullable|array',
+            'application_deadline' => 'nullable|date',
+            'is_active' => 'boolean',
+            'timeline' => 'nullable', 
             'coordinator_ids' => 'nullable|array',
             'coordinator_ids.*' => 'exists:users,id',
         ]);
@@ -141,9 +157,27 @@ class ProjectController extends Controller
             $validated['slug'] = Str::slug($validated['name']);
         }
 
+        if ($request->has('timeline') && is_string($request->timeline)) {
+            $validated['timeline'] = json_decode($request->timeline, true);
+        }
+
+        // Handle File Uploads - 11.4 / 9.0 Belgeler
+        $documentList = $project->documents ?? [];
+        if ($request->hasFile('document_files')) {
+            foreach ($request->file('document_files') as $index => $file) {
+                $title = $request->document_titles[$index] ?? $file->getClientOriginalName();
+                $path = $file->store('projects/documents', 'public');
+                $documentList[] = [
+                    'title' => $title,
+                    'url' => asset('storage/' . $path)
+                ];
+            }
+        }
+        $validated['documents'] = $documentList;
+
         $project->update($validated);
 
-        if (isset($request->coordinator_ids) && $user->hasRole('super-admin')) {
+        if ($request->has('coordinator_ids')) {
             $project->coordinators()->sync($request->coordinator_ids);
         }
 
