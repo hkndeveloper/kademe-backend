@@ -131,55 +131,63 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
-        $user = auth()->user();
-        if ($user) {
-            $this->authorize('manageProject', $project);
-        }
-
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|required|string',
-            'sub_description' => 'nullable|string',
-            'location' => 'nullable|string',
-            'capacity' => 'nullable|integer',
-            'format' => 'nullable|string',
-            'period' => 'nullable|string',
-            'application_deadline' => 'nullable|date',
-            'is_active' => 'boolean',
-            'timeline' => 'nullable', 
-            'coordinator_ids' => 'nullable|array',
-            'coordinator_ids.*' => 'exists:users,id',
-        ]);
-
-        if (isset($validated['name'])) {
-            $validated['slug'] = Str::slug($validated['name']);
-        }
-
-        if ($request->has('timeline') && is_string($request->timeline)) {
-            $validated['timeline'] = json_decode($request->timeline, true);
-        }
-
-        // Handle File Uploads - 11.4 / 9.0 Belgeler
-        $documentList = $project->documents ?? [];
-        if ($request->hasFile('document_files')) {
-            foreach ($request->file('document_files') as $index => $file) {
-                $title = $request->document_titles[$index] ?? $file->getClientOriginalName();
-                $path = $file->store('projects/documents', 'public');
-                $documentList[] = [
-                    'title' => $title,
-                    'url' => asset('storage/' . $path)
-                ];
+        try {
+            $user = auth()->user();
+            if ($user) {
+                $this->authorize('manageProject', $project);
             }
+
+            $validated = $request->validate([
+                'name' => 'sometimes|required|string|max:255',
+                'description' => 'sometimes|required|string',
+                'sub_description' => 'nullable|string',
+                'location' => 'nullable|string',
+                'capacity' => 'nullable|integer',
+                'format' => 'nullable|string',
+                'period' => 'nullable|string',
+                'application_deadline' => 'nullable|date',
+                'is_active' => 'boolean',
+                'timeline' => 'nullable', 
+                'coordinator_ids' => 'nullable|array',
+                'coordinator_ids.*' => 'exists:users,id',
+            ]);
+
+            if (isset($validated['name'])) {
+                $validated['slug'] = Str::slug($validated['name']);
+            }
+
+            if ($request->has('timeline') && is_string($request->timeline)) {
+                $validated['timeline'] = json_decode($request->timeline, true);
+            }
+
+            // Handle File Uploads - 11.4 / 9.0 Belgeler
+            $documentList = $project->documents ?? [];
+            if ($request->hasFile('document_files')) {
+                foreach ($request->file('document_files') as $index => $file) {
+                    $title = $request->document_titles[$index] ?? $file->getClientOriginalName();
+                    $path = $file->store('projects/documents', 'public');
+                    $documentList[] = [
+                        'title' => $title,
+                        'url' => asset('storage/' . $path)
+                    ];
+                }
+            }
+            $validated['documents'] = $documentList;
+
+            $project->update($validated);
+
+            if ($request->has('coordinator_ids')) {
+                $project->coordinators()->sync($request->coordinator_ids);
+            }
+
+            return response()->json($project->load('coordinators'));
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'DEBUG HATASI: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
-        $validated['documents'] = $documentList;
-
-        $project->update($validated);
-
-        if ($request->has('coordinator_ids')) {
-            $project->coordinators()->sync($request->coordinator_ids);
-        }
-
-        return response()->json($project->load('coordinators'));
     }
 
     public function bulkAttendance(Project $project)
