@@ -29,8 +29,8 @@ class ContactController extends Controller
         ]);
 
         try {
-            // 1. Yöneticiye Bildirim Gönder
-            $adminEmail = env('MAIL_FROM_ADDRESS', 'admin@kademe.org');
+            // 1. Yöneticiye Bildirim Gönder (config üzerinden alıyoruz)
+            $adminEmail = config('mail.from.address', 'admin@kademe.org');
             $this->commService->sendEmail(
                 null,
                 $adminEmail,
