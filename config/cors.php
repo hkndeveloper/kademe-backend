@@ -22,7 +22,9 @@ return [
     'allowed_origins' => [
         'http://localhost:3000', 
         'http://localhost:3001', 
-        'https://kademe-frontend-production.up.railway.app'
+        'https://kademe-frontend-production.up.railway.app',
+        'https://hakankekec.me',
+        'https://www.hakankekec.me'
     ],
 
     'allowed_origins_patterns' => [],
