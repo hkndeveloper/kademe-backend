@@ -27,7 +27,7 @@ WORKDIR /var/www/html
 COPY . .
 
 # Permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Install PHP Dependencies
 RUN composer install --no-dev --optimize-autoloader
