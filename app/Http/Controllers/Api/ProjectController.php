@@ -10,7 +10,10 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        return response()->json(Project::all());
+        $projects = Project::withCount(['applications' => function($q) {
+            $q->where('status', 'accepted');
+        }])->get();
+        return response()->json($projects);
     }
 
     public function getPublicStats()

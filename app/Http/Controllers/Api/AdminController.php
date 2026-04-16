@@ -28,6 +28,7 @@ class AdminController extends Controller
             $avgAttendance = $totalAttendance > 0 ? round(($attendedCount / $totalAttendance) * 100) : 0;
 
             $pendingApplications = Application::where('status', 'pending')->count();
+            $totalMaterials = \App\Models\ProjectMaterial::count();
         } catch (\Exception $e) {
             // Tablo henüz oluşturulmamışsa veya DB hatası varsa güvenli varsayılanlar döndür
             \Illuminate\Support\Facades\Log::error('Admin stats hatası: ' . $e->getMessage());
@@ -37,6 +38,7 @@ class AdminController extends Controller
                 'upcomingActivities' => $upcomingActivities ?? 0,
                 'avgAttendance' => '0%',
                 'pendingApplications' => 0,
+                'totalMaterials' => 0,
             ]);
         }
 
@@ -46,6 +48,7 @@ class AdminController extends Controller
             'upcomingActivities' => $upcomingActivities,
             'avgAttendance' => $avgAttendance . '%',
             'pendingApplications' => $pendingApplications,
+            'totalMaterials' => $totalMaterials
         ]);
     }
 
@@ -101,11 +104,18 @@ class AdminController extends Controller
             ];
         });
 
-        // SMS expenses (mock data - in production, integrate with Webasist API)
+        // SMS expenses (real data from CommunicationLogs)
+        $totalSms = \App\Models\CommunicationLog::where('type', 'sms')->count();
+        $monthlySms = \App\Models\CommunicationLog::where('type', 'sms')
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->count();
+        $costPerSms = 0.15; // TRY (Şartname 11.19 / Webasist birim maliyet)
+
         $smsExpenses = [
-            'total_sent' => 0,
-            'monthly_cost' => 0, 
+            'total_sent' => $totalSms,
+            'monthly_cost' => $monthlySms * $costPerSms,
             'by_project' => $projects->map(function ($project) {
+                // Not: CommunicationLog tablosu proje_id tutmadığı için şimdilik 0 veya genel sayı tutuyoruz.
                 return [
                     'project_name' => $project->name,
                     'sms_count' => 0
