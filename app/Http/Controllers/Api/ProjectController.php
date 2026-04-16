@@ -181,7 +181,7 @@ class ProjectController extends Controller
             }
 
             return response()->json($project->load('coordinators'));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'message' => 'DEBUG HATASI: ' . $e->getMessage(),
                 'file' => $e->getFile(),
