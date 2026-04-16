@@ -97,7 +97,9 @@ class ProjectController extends Controller
     public function show($idOrSlug)
     {
         $project = Project::where(is_numeric($idOrSlug) ? 'id' : 'slug', $idOrSlug)
-            ->with(['activities', 'applications.user.participantProfile', 'coordinators'])
+            ->with(['activities', 'applications' => function($q) {
+                $q->orderBy('status', 'asc')->orderBy('waitlist_order', 'asc')->orderBy('created_at', 'asc');
+            }, 'applications.user.participantProfile', 'coordinators'])
             ->firstOrFail();
 
         $user = auth('sanctum')->user();

@@ -175,6 +175,7 @@ class ApplicationController extends Controller
         // En eski yedek başvuruyu bul (Şartnamede admin sıralayabilir diyor, şimdilik kronolojik)
         $nextInLine = Application::where('project_id', $projectId)
             ->where('status', 'waitlisted')
+            ->orderBy('waitlist_order', 'asc')
             ->orderBy('created_at', 'asc')
             ->first();
 
@@ -206,5 +207,30 @@ class ApplicationController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Yedek Listesi Sıralamasını Güncelle (Section 11.15)
+     */
+    public function reorderWaitlist(Request $request, $projectId)
+    {
+        $user = auth()->user();
+        if ($user) {
+            $this->authorize('evaluateApplications', \App\Models\Project::findOrFail($projectId));
+        }
+
+        $request->validate([
+            'ordered_ids' => 'required|array',
+            'ordered_ids.*' => 'exists:applications,id'
+        ]);
+
+        foreach ($request->ordered_ids as $index => $id) {
+            Application::where('id', $id)
+                ->where('project_id', $projectId)
+                ->where('status', 'waitlisted')
+                ->update(['waitlist_order' => $index + 1]);
+        }
+
+        return response()->json(['message' => 'Yedek listesi sıralaması güncellendi.']);
     }
 }

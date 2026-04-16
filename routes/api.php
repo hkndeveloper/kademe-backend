@@ -99,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/applications', [ApplicationController::class, 'index']);
     Route::put('/applications/{application}/status', [ApplicationController::class, 'updateStatus']);
     Route::post('/applications/{projectId}/invite-next', [ApplicationController::class, 'inviteNextFromWaitlist']);
+    Route::put('/applications/{projectId}/waitlist-order', [ApplicationController::class, 'reorderWaitlist']);
 
     // Automatic Rejection Criteria (Section 11.9)
     Route::get('/projects/{project}/rejection-criteria', [RejectionCriteriaController::class, 'index']);
