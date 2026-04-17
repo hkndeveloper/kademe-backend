@@ -97,13 +97,17 @@ class AuthController extends Controller
                     'two_factor_confirmed_at' => null // Henüz doğrulanmadı
                 ]);
 
-                $commService = app(\App\Services\CommunicationService::class);
-                $commService->sendEmail(
-                    $user->id,
-                    $user->email,
-                    "KADEME Giriş Güvenlik Kodu",
-                    "Merhaba {$user->name},\n\nSisteme giriş yapabilmek için güvenlik kodunuz: {$twoFactorCode}\n\nEğer bu girişi siz yapmadıysanız lütfen şifrenizi değiştirin."
-                );
+                try {
+                    $commService = app(\App\Services\CommunicationService::class);
+                    $commService->sendEmail(
+                        $user->id,
+                        $user->email,
+                        "KADEME Giriş Güvenlik Kodu",
+                        "Merhaba {$user->name},\n\nSisteme giriş yapabilmek için güvenlik kodunuz: {$twoFactorCode}\n\nEğer bu girişi siz yapmadıysanız lütfen şifrenizi değiştirin."
+                    );
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("2FA Mail hatası: " . $e->getMessage());
+                }
             }
 
             return response()->json([
