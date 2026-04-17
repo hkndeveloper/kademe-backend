@@ -24,6 +24,17 @@ class ActivityController extends Controller
 
         $activities = $query->with('project')->get();
         
+        $activities->transform(function ($activity) use ($user) {
+            if ($user) {
+                $activity->has_attended = \App\Models\Attendance::where('user_id', $user->id)
+                    ->where('activity_id', $activity->id)
+                    ->exists();
+            } else {
+                $activity->has_attended = false;
+            }
+            return $activity;
+        });
+
         // Eğer kullanıcı öğrenci ise ve admin değilse veri maskelemesi (Censorship) yap
         if ($user && !$user->hasRole('admin') && !$user->hasRole('super-admin') && !$user->hasRole('coordinator')) {
             $acceptedProjectIds = \App\Models\Application::where('user_id', $user->id)
