@@ -103,7 +103,7 @@ class ActivityController extends Controller
                  $this->authorize('takeAttendance', $activity->project);
             }
         }
-        return response()->json($activity->load(['project', 'attendances']));
+        return response()->json($activity->load(['project', 'attendances.user']));
     }
 
     public function update(Request $request, Activity $activity)
