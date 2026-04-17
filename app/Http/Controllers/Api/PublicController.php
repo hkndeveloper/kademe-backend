@@ -31,7 +31,7 @@ class PublicController extends Controller
     }
 
     /**
-     * Public Proje Sayfası detayları (İçerik, Faaliyetler, Katılımcılar)
+     * Public Proje Sayfası detayları (İçerik, Faaliyetler, Katılımcılar, Materyaller)
      */
     public function getProjectDetails($id)
     {
@@ -44,6 +44,10 @@ class PublicController extends Controller
                 // Sadece kabul edilen veya mezun olan katılımcıları göster
                 $q->whereIn('status', ['accepted', 'completed'])
                   ->with(['user.participantProfile', 'user.roles']);
+            },
+            'materials' => function($q) {
+                // Sadece is_public olanları getir (Section 13.1 Boş Materyalleri)
+                $q->where('is_public', true);
             }
         ])->findOrFail($id);
 
@@ -64,7 +68,8 @@ class PublicController extends Controller
 
         return response()->json([
             'project' => $project,
-            'participants' => $participants
+            'participants' => $participants,
+            'public_materials' => $project->materials
         ]);
     }
 }

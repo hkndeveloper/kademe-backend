@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\PublicController;
 use App\Http\Controllers\Api\ProjectMaterialController;
 use App\Http\Controllers\Api\ForumController;
+use App\Http\Controllers\Api\KpdAppointmentController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -79,6 +80,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/users/{userId}/make-alumni', [AdminController::class, 'makeAlumni']);
     Route::get('/admin/announcements/logs', [AnnouncementController::class, 'getLogs']);
     Route::post('/admin/announcements/bulk-send', [AnnouncementController::class, 'bulkSend']);
+    
+    // KPD Randevu Yönetimi
+    Route::get('/admin/kpd/appointments', [KpdAppointmentController::class, 'index']);
+    Route::put('/admin/kpd/appointments/{id}', [KpdAppointmentController::class, 'update']);
 
     // Projeler
     Route::apiResource('projects', ProjectController::class)->except(['index', 'show']);
@@ -173,6 +178,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student/certificates', [StudentController::class, 'getCertificates']);
     Route::get('/student/cv', [CVController::class, 'getMyCv']);
     Route::put('/student/cv', [CVController::class, 'update']);
+    
+    // KPD Öğrenci Randevu
+    Route::get('/student/kpd/appointments', [KpdAppointmentController::class, 'myAppointments']);
+    Route::post('/student/kpd/appointments', [KpdAppointmentController::class, 'store']);
+    Route::get('/student/kpd/availability', [KpdAppointmentController::class, 'checkAvailability']);
 
     // ─── Oyunlaştırma / Rozet Kademeleri ─────────────────────────────────────
     Route::get('/badge-tiers', [BadgeTierController::class, 'index']);
