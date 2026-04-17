@@ -49,12 +49,49 @@ class CreditService
                 $oldCredits = $profile->credits;
                 $newCredits = max(0, $profile->credits - $creditLoss);
                 
-                $profile->update(['credits' => $newCredits]);
-                
-                Log::info("Credits deducted for user {$profile->user_id}: {$oldCredits} -> {$newCredits}");
+                $updateData = ['credits' => $newCredits];
 
-                // Check if below threshold and send SMS alert
-                if ($newCredits < $this->creditThreshold && $oldCredits >= $this->creditThreshold) {
+                // 14.1 Otomatik Kara Liste (Blacklist) Mekanizma Kontrolü
+                // Kaç eksiği var bul
+                $absences = DB::table('activities')
+                    ->join('applications', 'applications.project_id', '=', 'activities.project_id')
+                    ->where('applications.user_id', $profile->user_id)
+                    ->where('applications.status', 'accepted')
+                    ->where('activities.end_time', '<', now())
+                    ->whereNotExists(function ($query) use ($profile) {
+                        $query->select(DB::raw(1))
+                              ->from('attendances')
+                              ->whereColumn('attendances.activity_id', 'activities.id')
+                              ->where('attendances.user_id', $profile->user_id);
+                    })
+                    ->count();
+
+                if ($absences >= 3 && is_null($profile->blacklisted_at)) {
+                    $updateData['blacklisted_at'] = now();
+                    $updateData['blacklist_reason'] = 'Sistem: Mazeretsiz 3 kez devamsızlık sınırı aşıldı.';
+                    
+                    Log::info("User {$profile->user_id} automatically blacklisted due to 3 unexcused absences.");
+                    
+                    DB::table('audit_logs')->insert([
+                        'user_id' => null, // System Action
+                        'action' => 'auto_blacklist',
+                        'model_type' => ParticipantProfile::class,
+                        'model_id' => $profile->id,
+                        'old_values' => json_encode(['blacklisted_at' => null]),
+                        'new_values' => json_encode(['blacklisted_at' => now()->toDateTimeString()]),
+                        'reason' => '3 Kez mazeretsiz devamsızlık sınırı aşıldı',
+                        'created_at' => now(),
+                    ]);
+
+                    $this->sendBlacklistAlert($profile);
+                }
+
+                $profile->update($updateData);
+                
+                Log::info("Credits deducted for user {$profile->user_id}: {$oldCredits} -> {$newCredits} | Absences: {$absences}");
+
+                // Check if below threshold and send SMS alert (only if not just blacklisted)
+                if ($newCredits < $this->creditThreshold && $oldCredits >= $this->creditThreshold && !isset($updateData['blacklisted_at'])) {
                     $this->sendLowCreditAlert($profile);
                     $alertedUsers[] = $profile->user_id;
                 }
@@ -88,6 +125,27 @@ class CreditService
         }
 
         Log::info("Low credit alerts (SMS & Email) triggered for user {$profile->user_id}");
+    }
+
+    /**
+     * Send alert to user who got blacklisted
+     */
+    protected function sendBlacklistAlert(ParticipantProfile $profile)
+    {
+        $message = "KADEME Yönetimi: Mazeretsiz 3 devamsızlık sınırını aştığınız için sistem kaydınız otomatik olarak kara listeye alınmıştır.";
+        $this->smsService->sendSms($profile->phone, $message);
+        
+        $user = $profile->user;
+        if ($user) {
+            $commService = app(\App\Services\CommunicationService::class);
+            $commService->sendEmail(
+                $user->id, 
+                $user->email, 
+                'Kara Liste Bilgilendirmesi', 
+                "Merhaba {$user->name},\n\nKADEME projelerindeki faaliyetlere mazeretsiz olarak 3 kez katılmadığınız tespit edilmiştir. Şartnamemiz gereği kaydınız otomatik olarak dondurulmuş (Kara Liste - Blacklist) statüsüne çekilmiştir. Belirlenen süre boyunca yeni bir programa başvuru yapamayacaksınız."
+            );
+        }
+        Log::info("Blacklist alert sent to user {$profile->user_id}");
     }
 
     /**
