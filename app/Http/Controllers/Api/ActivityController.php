@@ -30,9 +30,9 @@ class ActivityController extends Controller
             $query->where('project_id', $request->project_id);
         }
 
-        $activities = $query->with('project')->get();
+        $activities = $query->with('project')->latest()->paginate(15);
         
-        $activities->transform(function ($activity) use ($user) {
+        $activities->getCollection()->transform(function ($activity) use ($user) {
             if ($user) {
                 $activity->has_attended = \App\Models\Attendance::where('user_id', $user->id)
                     ->where('activity_id', $activity->id)
@@ -50,7 +50,7 @@ class ActivityController extends Controller
                 ->pluck('project_id')
                 ->toArray();
                 
-            $activities->transform(function ($activity) use ($acceptedProjectIds) {
+            $activities->getCollection()->transform(function ($activity) use ($acceptedProjectIds) {
                 if (!in_array($activity->project_id, $acceptedProjectIds)) {
                     $activity->description = 'Bu faaliyetin detaylarını görüntülemek için ilgili programa kayıtlı olmalısınız.';
                     $activity->room_name = 'Gizli Konum';
