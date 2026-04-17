@@ -9,9 +9,16 @@ use App\Models\RejectionCriteria;
 use App\Models\ParticipantProfile;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Services\ParticipantService;
 
 class ApplicationController extends Controller
 {
+    protected $participantService;
+
+    public function __construct(ParticipantService $participantService)
+    {
+        $this->participantService = $participantService;
+    }
     // Katılımcının bir projeye başvurması (Saat çakışma kontrolü / Section 14.2)
     public function store(Request $request)
     {
@@ -134,18 +141,8 @@ class ApplicationController extends Controller
         }
 
         if ($request->status === 'accepted') {
-            // Ziyaretçiyi otomatik olarak 'Student' rolüne geçir (Section 11)
             $user = User::findOrFail($application->user_id);
-            if (!$user->hasRole('student')) {
-                $user->removeRole('guest');
-                $user->assignRole('student');
-                
-                // Profil dönüşümü: Pasiften Aktife geçiş ve 100 kredi ataması
-                \App\Models\ParticipantProfile::updateOrCreate(
-                    ['user_id' => $user->id],
-                    ['credits' => 100, 'status' => 'active']
-                );
-            }
+            $this->participantService->activateParticipant($user);
         }
 
         try {
@@ -182,15 +179,9 @@ class ApplicationController extends Controller
         if ($nextInLine) {
             $nextInLine->update(['status' => 'accepted']);
             
-            // Profil dönüşümü
+            // Profil dönüşümü (Service üzerinden)
             $user = User::find($nextInLine->user_id);
-            if (!$user->hasRole('student')) {
-                $user->assignRole('student');
-                \App\Models\ParticipantProfile::firstOrCreate(
-                    ['user_id' => $user->id],
-                    ['credits' => 100, 'status' => 'active']
-                );
-            }
+            $this->participantService->activateParticipant($user);
 
             // SMS Bilgilendirme Simülasyonu
             $commService = app(\App\Services\CommunicationService::class);

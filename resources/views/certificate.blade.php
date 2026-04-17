@@ -125,10 +125,6 @@
                         </div>
                     </td>
                     <td class="qr-cell">
-                        @php
-                            $verifyUrl = url('/api/cv/' . ($user->participantProfile->uuid ?? $user->id));
-                            $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($verifyUrl);
-                        @endphp
                         <img src="{{ $qrUrl }}" class="qr-code">
                         <div class="verify-text">DOGRULAMA KODU: KD-{{ strtoupper(substr(md5($user->id . $project->id), 0, 8)) }}</div>
                     </td>

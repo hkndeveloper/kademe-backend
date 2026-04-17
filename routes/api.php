@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\GoogleCalendarController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\NewsletterController;
-use App\Http\Controllers\Api\ActivityFeedbackController;
+use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\TwoFactorController;
 use App\Http\Controllers\Api\RejectionCriteriaController;
 use App\Http\Controllers\Api\BadgeTierController;
@@ -133,9 +133,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/activities/{activity}/process-absences', [AttendanceController::class, 'processAbsences']);
 
     // Activity Feedback (Section 11.14)
-    Route::post('/activities/{activity}/feedback', [ActivityFeedbackController::class, 'store']);
-    Route::get('/activities/{activity}/feedback', [ActivityFeedbackController::class, 'index']);
-    Route::get('/feedback/pending', [ActivityFeedbackController::class, 'checkPending']);
+    Route::post('/activities/{activity}/feedback', [FeedbackController::class, 'store']);
+    Route::get('/activities/{activity}/feedback', [FeedbackController::class, 'index']);
+    Route::get('/feedback/pending', [FeedbackController::class, 'checkPending']);
     
     // Admin KPD Report Management
     Route::get('/admin/kpd-reports', [\App\Http\Controllers\Api\AdminKpdReportController::class, 'index']);
@@ -151,9 +151,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student/certificates', [\App\Http\Controllers\Api\StudentController::class, 'getCertificates']);
     Route::get('/student/cv', [\App\Http\Controllers\Api\CVController::class, 'getMyCv']);
     Route::put('/student/cv', [\App\Http\Controllers\Api\CVController::class, 'update']);
-
-    // Feedback
-    Route::post('/feedback', [\App\Http\Controllers\FeedbackController::class, 'store']);
 
     // Badge Tiers (Gamification)
     Route::get('/badge-tiers', [BadgeTierController::class, 'index']);

@@ -9,16 +9,25 @@ use App\Models\ParticipantProfile;
 use App\Models\User;
 use App\Models\Badge;
 use App\Services\CreditService;
+use App\Services\AttendanceService;
+use App\Services\LocationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AttendanceController extends Controller
 {
     protected $creditService;
+    protected $attendanceService;
+    protected $locationService;
 
-    public function __construct(CreditService $creditService)
-    {
+    public function __construct(
+        CreditService $creditService, 
+        AttendanceService $attendanceService,
+        LocationService $locationService
+    ) {
         $this->creditService = $creditService;
+        $this->attendanceService = $attendanceService;
+        $this->locationService = $locationService;
     }
 
     /**
@@ -77,35 +86,21 @@ class AttendanceController extends Controller
             return response()->json(['message' => 'Yoklama süresi dışında.'], 422);
         }
 
-        // 3. Konum Kontrolü (Haversine Formülü)
-        $distance = $this->calculateDistance(
+        // 3. Konum Kontrolü
+        $locationVerified = $this->locationService->isWithinRadius(
             $validated['latitude'], $validated['longitude'],
-            $activity->latitude, $activity->longitude
+            $activity->latitude, $activity->longitude,
+            $activity->radius
         );
-
-        $locationVerified = $distance <= $activity->radius;
 
         if (!$locationVerified) {
             return response()->json([
-                'message' => 'Konum doğrulanamadı. Faaliyet alanında olmalısınız.',
-                'distance' => round($distance, 2) . ' metre'
+                'message' => 'Konum doğrulanamadı. Faaliyet alanında olmalısınız.'
             ], 422);
         }
 
-        // 4. Yoklama Kaydı ve Kredi Güncelleme
-        $attendance = Attendance::updateOrCreate(
-            ['user_id' => $user->id, 'activity_id' => $activity->id],
-            [
-                'status' => 'attended',
-                'location_verified' => true,
-                'credit_impact' => 0 // Katilimda genellikle kredi dusmez, katilmama durumunda duser.
-            ]
-        );
-
-        $this->checkBadges($user);
-
-        // Mezuniyet Kontrolü (Section 9.1)
-        app(\App\Services\GraduationService::class)->checkAndProcessGraduation($user);
+        // 4. Yoklama Kaydı (Service üzerinden merkezi yönetim)
+        $attendance = $this->attendanceService->recordAttendance($user, $activity);
 
         return response()->json([
             'message' => 'Yoklama başarıyla alındı. Teşekkürler!',
@@ -131,21 +126,10 @@ class AttendanceController extends Controller
             $this->authorize('takeAttendance', $activity->project);
         }
 
-        // Mevcut kaydı güncelle veya oluştur
-        $attendance = Attendance::updateOrCreate(
-            ['user_id' => $validated['user_id'], 'activity_id' => $validated['activity_id']],
-            [
-                'status' => 'attended',
-                'location_verified' => true,
-                'credit_impact' => 0,
-                'note' => $validated['note'] ?? 'Manuel giriş yapıldı.'
-            ]
-        );
-
-        $this->checkBadges($user);
-
-        // Mezuniyet Kontrolü (Section 9.1)
-        app(\App\Services\GraduationService::class)->checkAndProcessGraduation($user);
+        // Mevcut kaydı güncelle veya oluştur (Service üzerinden)
+        $attendance = $this->attendanceService->recordAttendance($user, $activity, [
+            'note' => $validated['note'] ?? 'Manuel giriş yapıldı.'
+        ]);
 
         return response()->json([
             'message' => 'Manuel yoklama başarıyla kaydedildi.',
@@ -154,107 +138,15 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Otomatik Rozet Kazanma Kontrolü (Section 8)
-     */
-    private function checkBadges(User $user)
-    {
-        $attendanceCount = Attendance::where('user_id', $user->id)->where('status', 'attended')->count();
-
-        // 1. İlk Adım Rozeti
-        if ($attendanceCount >= 1) {
-            $badge = Badge::where('name', 'İlk Adım')->first();
-            if ($badge && !$user->badges()->where('badge_id', $badge->id)->exists()) {
-                $user->badges()->attach($badge->id);
-            }
-        }
-
-        // 2. Sadık Katılımcı Rozeti
-        if ($attendanceCount >= 5) {
-            $badge = Badge::where('name', 'Sadık Katılımcı')->first();
-            if ($badge && !$user->badges()->where('badge_id', $badge->id)->exists()) {
-                $user->badges()->attach($badge->id);
-            }
-        }
-    }
-
-    /**
-     * Devamsızlık İşleme ve Kredi Düşümü (Section 6.3)
-     * Manuel veya Scheduled tetiklenebilir.
+     * Devamsızlık İşleme (Service üzerinden)
      */
     public function processAbsences($activityId)
     {
         $activity = Activity::findOrFail($activityId);
-
-        // Use CreditService to handle credit deduction and alerts
-        $alertedUsers = $this->creditService->deductCreditsForMissedActivity($activity);
-
-        // Bu faaliyete katılması beklenen (başvurusu kabul edilmiş) herkesi bul
-        $expectedUserIds = \App\Models\Application::where('project_id', $activity->project_id)
-            ->where('status', 'accepted')
-            ->pluck('user_id');
-
-        // Gelmeyenleri bul
-        $attendedUserIds = Attendance::where('activity_id', $activityId)
-            ->where('status', 'attended')
-            ->pluck('user_id');
-
-        $absentUserIds = $expectedUserIds->diff($attendedUserIds);
-
-        foreach ($absentUserIds as $userId) {
-            // Yoklama kaydını 'absent' olarak oluştur/güncelle
-            Attendance::updateOrCreate(
-                ['user_id' => $userId, 'activity_id' => $activityId],
-                ['status' => 'missed', 'credit_impact' => -($activity->credit_loss_amount ?? 10)]
-            );
-
-            // Otomatik Kara Liste Mekanizması (Section 14.1)
-            // 3 kez mazeretsiz katılmayanlar otomatik "Blacklist" statüsüne alınır.
-            $absentCount = Attendance::where('user_id', $userId)->where('status', 'absent')->count();
-            if ($absentCount >= 3) {
-                $profile = ParticipantProfile::where('user_id', $userId)->first();
-                if ($profile) {
-                    $profile->update(['status' => 'blacklisted']);
-
-                    $commService = app(\App\Services\CommunicationService::class);
-                    $message = "SİSTEMDEN ÇIKARILDINIZ: 3 kez mazeretsiz devamsızlık yaptığınız için hesabınız kara listeye alınmıştır.";
-                    
-                    // SMS
-                    $commService->sendSms($userId, $profile->phone, $message);
-
-                    // Email
-                    $u = User::find($userId);
-                    $commService->sendEmail(
-                        $userId,
-                        $u->email ?? '',
-                        'Hesabınız Askıya Alındı (Kara Liste)',
-                        "Merhaba ".($u->name ?? 'Katılımcı').",\n\nDevamsızlık sınırını (3 kez) aştığınız için KADEME öğrenci profiliniz otomatik olarak 'Kara Liste' statüsüne alınmıştır. Mevcut programlara katılımınız durdurulmuş ve yeni başvuru haklarınız askıya alınmıştır.\n\nİtiraz veya bilgi için koordinatörlük ile iletişime geçebilirsiniz."
-                    );
-                }
-            }
-        }
-
+        $absentCount = $this->attendanceService->processAbsences($activity);
+        
         return response()->json([
-            'message' => count($absentUserIds) . ' kişi devamsız olarak işaretlendi ve kredi düşümü yapıldı.',
-            'alerted_users' => count($alertedUsers)
+            'message' => $absentCount . ' kişi devamsız olarak işaretlendi.'
         ]);
-    }
-
-    /**
-     * İki koordinat arası mesafeyi metre cinsinden hesaplar
-     */
-    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
-    {
-        $earthRadius = 6371000; // Metre
-
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-             sin($dLon / 2) * sin($dLon / 2);
-
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-
-        return $earthRadius * $c;
     }
 }

@@ -9,8 +9,16 @@ use App\Models\User;
 use App\Models\Application;
 use App\Models\Attendance;
 
+use App\Services\QrService;
+
 class CVController extends Controller
 {
+    protected $qrService;
+
+    public function __construct(QrService $qrService)
+    {
+        $this->qrService = $qrService;
+    }
     /**
      * Öğrencinin Kendi CV Verilerini Getirir
      */
@@ -58,7 +66,7 @@ class CVController extends Controller
                 'badges_count' => $user->badges->count()
             ],
             'verified_at' => $profile->updated_at->format('d.m.Y'),
-            'qr_code' => "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode(url("/cv/{$publicId}"))
+            'qr_code' => $this->qrService->generateUrl(url("/cv/{$publicId}"), 150)
         ]);
     }
 

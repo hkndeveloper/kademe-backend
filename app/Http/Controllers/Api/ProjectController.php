@@ -6,8 +6,16 @@ use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
+use App\Services\AttendanceService;
+
 class ProjectController extends Controller
 {
+    protected $attendanceService;
+
+    public function __construct(AttendanceService $attendanceService)
+    {
+        $this->attendanceService = $attendanceService;
+    }
     public function index()
     {
         $user = auth('sanctum')->user();
@@ -204,12 +212,10 @@ class ProjectController extends Controller
 
         foreach ($activities as $activity) {
             foreach ($acceptedUserIds as $userId) {
-                \App\Models\Attendance::firstOrCreate([
-                    'activity_id' => $activity->id,
-                    'user_id' => $userId,
-                ], [
-                    'status' => 'attended',
-                ]);
+                $pUser = \App\Models\User::find($userId);
+                if ($pUser) {
+                    $this->attendanceService->recordAttendance($pUser, $activity);
+                }
             }
         }
 

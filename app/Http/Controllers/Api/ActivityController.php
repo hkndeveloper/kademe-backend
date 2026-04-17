@@ -7,8 +7,16 @@ use App\Models\Activity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
+use App\Services\QrService;
+
 class ActivityController extends Controller
 {
+    protected $qrService;
+
+    public function __construct(QrService $qrService)
+    {
+        $this->qrService = $qrService;
+    }
     public function index(Request $request)
     {
         $user = auth('sanctum')->user();
@@ -217,7 +225,7 @@ class ActivityController extends Controller
         
         // QR içeriği: Sadece secret (Örn: hash)
         // Öğrenci uygulaması bu kodu okuyup /api/attendance/store'a gönderecek
-        $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($dynamicSecret);
+        $qrUrl = $this->qrService->generateUrl($dynamicSecret, 300);
         
         return response()->json([
             'activity_id' => $activity->id,
