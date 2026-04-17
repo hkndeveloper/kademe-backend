@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\AdminKpdReportController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\CertificateController;
+use App\Http\Controllers\Api\PublicController;
 use App\Http\Controllers\Api\ProjectMaterialController;
 use App\Http\Controllers\Api\ForumController;
 
@@ -45,7 +46,8 @@ Route::get('/test-mail', function (\Illuminate\Http\Request $request) {
     return response()->json(['message' => 'Test maili ' . $email . ' adresine gönderildi.']);
 });
 
-Route::get('/public-stats', [ProjectController::class, 'getPublicStats']);
+Route::get('/public-stats', [PublicController::class, 'getStats']);
+Route::get('/public-projects/{id}', [PublicController::class, 'getProjectDetails']);
 Route::get('/projects', [ProjectController::class, 'index']);
 Route::get('/projects/{project}', [ProjectController::class, 'show']);
 Route::get('/cv/{uuid}', [CVController::class, 'show']);
