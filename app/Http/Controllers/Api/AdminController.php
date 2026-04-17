@@ -190,14 +190,25 @@ class AdminController extends Controller
 
         $request->validate([
             'credits' => 'required|integer|min:0|max:100',
+            'status' => 'nullable|in:active,passive,alumni,blacklisted,failed',
             'reason' => 'nullable|string'
         ]);
 
-        $profile->update([
+        $updateData = [
             'credits' => $request->credits,
             'blacklist_reason' => $request->reason ? ($profile->blacklist_reason . " | Kredi Güncelleme: " . $request->reason) : $profile->blacklist_reason
-        ]);
+        ];
 
-        return response()->json(['message' => 'Kredi başarıyla güncellendi.', 'new_credits' => $profile->credits]);
+        if ($request->has('status')) {
+            $updateData['status'] = $request->status;
+            // Eğer aktif ediliyorsa blacklist tarihini sıfırlayabiliriz
+            if ($request->status === 'active') {
+                $updateData['blacklisted_at'] = null;
+            }
+        }
+
+        $profile->update($updateData);
+
+        return response()->json(['message' => 'Kredi ve durum başarıyla güncellendi.', 'new_credits' => $profile->credits, 'new_status' => $profile->status]);
     }
 }

@@ -14,9 +14,14 @@ class KpdAppointmentController extends Controller
      */
     public function index()
     {
-        $appointments = KpdAppointment::with(['user:id,name,email', 'coordinator:id,name'])
-            ->latest()
-            ->get();
+        $user = auth()->user();
+        $query = KpdAppointment::with(['user:id,name,email', 'coordinator:id,name']);
+
+        if ($user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
+            $query->where('coordinator_id', $user->id);
+        }
+
+        $appointments = $query->latest()->get();
             
         return response()->json($appointments);
     }
