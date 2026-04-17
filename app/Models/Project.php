@@ -36,4 +36,9 @@ class Project extends Model
     {
         return $this->belongsToMany(User::class, 'project_coordinator');
     }
+
+    public function materials()
+    {
+        return $this->hasMany(ProjectMaterial::class);
+    }
 }
