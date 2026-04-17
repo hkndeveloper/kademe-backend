@@ -97,6 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Application System (Başvuru)
     Route::post('/applications', [ApplicationController::class, 'store']);
     Route::get('/applications', [ApplicationController::class, 'index']);
+    Route::get('/applications/{application}', [ApplicationController::class, 'show']);
     Route::put('/applications/{application}/status', [ApplicationController::class, 'updateStatus']);
     Route::post('/applications/{projectId}/invite-next', [ApplicationController::class, 'inviteNextFromWaitlist']);
     Route::put('/applications/{projectId}/waitlist-order', [ApplicationController::class, 'reorderWaitlist']);

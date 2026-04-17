@@ -13,11 +13,17 @@ class ParticipantController extends Controller
     public function index(Request $request)
     {
         $query = $this->buildFilterQuery($request);
-        $participants = $query->paginate(20);
+        
+        if ($request->has('all')) {
+            $participants = $query->get();
+        } else {
+            $participants = $query->paginate(20);
+        }
 
         // KVKK Veri Maskeleme (Section 11.11)
-        // Sadece yetkili adminler görmeli mantığı eklenebilir. Şimdilik temel transform:
-        $participants->getCollection()->transform(function($p) {
+        $collection = $request->has('all') ? $participants : $participants->getCollection();
+        
+        $collection->transform(function($p) {
             $p->tc_no_masked = $p->tc_no ? substr($p->tc_no, 0, 3) . '********' : null;
             $p->phone_masked = $p->phone ? substr($p->phone, 0, 4) . '***' . substr($p->phone, -2) : null;
             return $p;
