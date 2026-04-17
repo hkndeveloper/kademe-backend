@@ -94,9 +94,11 @@ class AuthController extends Controller
                 $twoFactorCode = rand(100000, 999999);
                 $user->update([
                     'two_factor_secret' => $twoFactorCode,
-                    'two_factor_confirmed_at' => null // Henüz doğrulanmadı
+                    'two_factor_confirmed_at' => null
                 ]);
 
+                // Sunucu yorgunlugu olusturup login islemini dondurmamasi icin 2FA maili simdilik deaktif
+                /*
                 try {
                     $commService = app(\App\Services\CommunicationService::class);
                     $commService->sendEmail(
@@ -108,6 +110,7 @@ class AuthController extends Controller
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error("2FA Mail hatası: " . $e->getMessage());
                 }
+                */
             }
 
             return response()->json([
