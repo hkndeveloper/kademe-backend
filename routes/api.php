@@ -85,6 +85,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/kpd/appointments', [KpdAppointmentController::class, 'index']);
     Route::put('/admin/kpd/appointments/{id}', [KpdAppointmentController::class, 'update']);
 
+    // Kredi ve Blacklist Yönetimi (Section 14.1)
+    Route::get('/admin/blacklist', [AdminController::class, 'getBlacklistedUsers']);
+    Route::post('/admin/users/{userId}/adjust-credits', [AdminController::class, 'adjustCredits']);
+
     // Projeler
     Route::apiResource('projects', ProjectController::class)->except(['index', 'show']);
     Route::post('/projects/{project}/bulk-attendance', [ProjectController::class, 'bulkAttendance']);

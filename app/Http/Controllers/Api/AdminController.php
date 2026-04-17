@@ -163,4 +163,41 @@ class AdminController extends Controller
         $coordinators = User::role('coordinator')->get(['id', 'name', 'email']);
         return response()->json($coordinators);
     }
+
+    /**
+     * Kara Listeye Alınmış Kullanıcıları Listele (Section 14.1)
+     */
+    public function getBlacklistedUsers()
+    {
+        $users = User::whereHas('participantProfile', function($q) {
+            $q->where('status', 'blacklisted');
+        })->with('participantProfile')->get();
+        
+        return response()->json($users);
+    }
+
+    /**
+     * Manuel Kredi Ayarlama (Section 14.1)
+     */
+    public function adjustCredits(Request $request, $userId)
+    {
+        $user = User::findOrFail($userId);
+        $profile = $user->participantProfile;
+        
+        if (!$profile) {
+            return response()->json(['message' => 'Katılımcı profili bulunamadı.'], 404);
+        }
+
+        $request->validate([
+            'credits' => 'required|integer|min:0|max:100',
+            'reason' => 'nullable|string'
+        ]);
+
+        $profile->update([
+            'credits' => $request->credits,
+            'blacklist_reason' => $request->reason ? ($profile->blacklist_reason . " | Kredi Güncelleme: " . $request->reason) : $profile->blacklist_reason
+        ]);
+
+        return response()->json(['message' => 'Kredi başarıyla güncellendi.', 'new_credits' => $profile->credits]);
+    }
 }
