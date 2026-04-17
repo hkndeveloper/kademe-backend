@@ -122,7 +122,7 @@ class ApplicationController extends Controller
         }
 
         $request->validate([
-            'status' => 'required|in:accepted,rejected,waitlisted'
+            'status' => 'required|in:accepted,rejected,waitlisted,pending'
         ]);
 
         $oldStatus = $application->status;
