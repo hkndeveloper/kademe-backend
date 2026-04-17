@@ -204,7 +204,7 @@ class AttendanceController extends Controller
             // Yoklama kaydını 'absent' olarak oluştur/güncelle
             Attendance::updateOrCreate(
                 ['user_id' => $userId, 'activity_id' => $activityId],
-                ['status' => 'absent', 'credit_impact' => -($activity->credit_loss_amount ?? 10)]
+                ['status' => 'missed', 'credit_impact' => -($activity->credit_loss_amount ?? 10)]
             );
 
             // Otomatik Kara Liste Mekanizması (Section 14.1)
@@ -222,11 +222,12 @@ class AttendanceController extends Controller
                     $commService->sendSms($userId, $profile->phone, $message);
 
                     // Email
+                    $u = User::find($userId);
                     $commService->sendEmail(
                         $userId,
-                        $user->email,
+                        $u->email ?? '',
                         'Hesabınız Askıya Alındı (Kara Liste)',
-                        "Merhaba {$user->name},\n\nDevamsızlık sınırını (3 kez) aştığınız için KADEME öğrenci profiliniz otomatik olarak 'Kara Liste' statüsüne alınmıştır. Mevcut programlara katılımınız durdurulmuş ve yeni başvuru haklarınız askıya alınmıştır.\n\nİtiraz veya bilgi için koordinatörlük ile iletişime geçebilirsiniz."
+                        "Merhaba ".($u->name ?? 'Katılımcı').",\n\nDevamsızlık sınırını (3 kez) aştığınız için KADEME öğrenci profiliniz otomatik olarak 'Kara Liste' statüsüne alınmıştır. Mevcut programlara katılımınız durdurulmuş ve yeni başvuru haklarınız askıya alınmıştır.\n\nİtiraz veya bilgi için koordinatörlük ile iletişime geçebilirsiniz."
                     );
                 }
             }

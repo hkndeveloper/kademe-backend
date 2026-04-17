@@ -208,9 +208,7 @@ class ProjectController extends Controller
                     'activity_id' => $activity->id,
                     'user_id' => $userId,
                 ], [
-                    'status' => 'present',
-                    'marked_at' => now(),
-                    'method' => 'manual_bulk'
+                    'status' => 'attended',
                 ]);
             }
         }

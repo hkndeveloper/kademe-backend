@@ -10,7 +10,7 @@ class Attendance extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'activity_id', 'status', 'location_verified', 'credit_impact'];
+    protected $fillable = ['user_id', 'activity_id', 'status', 'location_verified', 'credit_impact', 'note'];
 
     protected $casts = [
         'location_verified' => 'boolean',
