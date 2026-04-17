@@ -30,7 +30,7 @@ class ActivityController extends Controller
             $query->where('project_id', $request->project_id);
         }
 
-        $activities = $query->with('project')->latest()->paginate(15);
+        $activities = $query->with('project')->paginate(15);
         
         $activities->getCollection()->transform(function ($activity) use ($user) {
             if ($user) {
@@ -50,7 +50,7 @@ class ActivityController extends Controller
                 ->pluck('project_id')
                 ->toArray();
                 
-            $activities->getCollection()->transform(function ($activity) use ($acceptedProjectIds) {
+            $activities->transform(function ($activity) use ($acceptedProjectIds) {
                 if (!in_array($activity->project_id, $acceptedProjectIds)) {
                     $activity->description = 'Bu faaliyetin detaylarını görüntülemek için ilgili programa kayıtlı olmalısınız.';
                     $activity->room_name = 'Gizli Konum';

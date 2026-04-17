@@ -99,6 +99,7 @@ class ApplicationController extends Controller
         return response()->json(['message' => 'Başvuru başarıyla alındı.', 'application' => $application]);
     }
 
+    // Adminin başvuruları listelemesi
     public function index(Request $request)
     {
         $user = auth()->user();
@@ -111,20 +112,6 @@ class ApplicationController extends Controller
         $applications = $query->latest()->paginate(15);
         return response()->json($applications);
     }
-
-    // Tek bir başvuruyu getir (Yeni eklendi)
-    public function show(Application $application)
-    {
-        $user = auth()->user();
-        if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
-            if ($application->project->coordinators->where('id', $user->id)->isEmpty()) {
-                return response()->json(['message' => 'Bu projeye erişim yetkiniz yok.'], 403);
-            }
-        }
-        
-        return response()->json($application->load(['user.participantProfile', 'project']));
-    }
-
 
     // Adminin başvuruyu kabul/red/yedek etmesi
     public function updateStatus(Request $request, Application $application)
