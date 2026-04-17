@@ -191,12 +191,16 @@ class ProjectController extends Controller
             }
 
             return response()->json($project->load('coordinators'));
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json(['message' => 'Bu işlemi yapmaya yetkiniz bulunmamaktadır.'], 403);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['message' => 'Doğrulama hatası.', 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
-            return response()->json([
-                'message' => 'DEBUG HATASI: ' . $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ], 500);
+            \Illuminate\Support\Facades\Log::error('Proje güncelleme hatası: ' . $e->getMessage(), [
+                'project_id' => $project->id,
+                'user_id' => auth()->id(),
+            ]);
+            return response()->json(['message' => 'Proje güncellenirken bir hata oluştu.'], 500);
         }
     }
 

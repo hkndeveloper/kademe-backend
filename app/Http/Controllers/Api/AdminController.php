@@ -34,7 +34,7 @@ class AdminController extends Controller
                 })->count();
                 $attendedCount = Attendance::whereHas('activity', function($q) use ($projectIds) {
                     $q->whereIn('project_id', $projectIds);
-                })->where('status', 'present')->count();
+                })->where('status', 'attended')->count();
                 
                 $pendingApplications = Application::whereIn('project_id', $projectIds)->where('status', 'pending')->count();
                 $totalMaterials = \App\Models\ProjectMaterial::whereIn('project_id', $projectIds)->count();
@@ -43,7 +43,7 @@ class AdminController extends Controller
                 $activeProjects = Project::where('is_active', true)->count();
                 $upcomingActivities = Activity::where('start_time', '>', now())->count();
                 $totalAttendance = Attendance::count();
-                $attendedCount = Attendance::where('status', 'present')->count();
+                $attendedCount = Attendance::where('status', 'attended')->count();
                 $pendingApplications = Application::where('status', 'pending')->count();
                 $totalMaterials = \App\Models\ProjectMaterial::count();
             }

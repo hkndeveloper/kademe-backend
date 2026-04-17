@@ -12,7 +12,14 @@ class ParticipantProfile extends Model
 
     protected $fillable = [
         'user_id', 'public_id', 'tc_no', 'phone', 'address', 'university', 'department', 'class',
-        'credits', 'status', 'digital_cv', 'age', 'hometown', 'period', 'is_graduated', 'graduated_at', 'graduation_certificate_id'
+        'credits', 'status', 'digital_cv', 'age', 'hometown', 'period',
+        'is_graduated', 'graduated_at', 'graduation_certificate_id',
+        // Blacklist alanları
+        'blacklisted_at', 'blacklist_reason',
+        // Mezuniyet alanları
+        'graduation_status', 'graduated_project_id', 'graduation_reason',
+        // Dijital CV alanları
+        'cv_uuid', 'public_cv',
     ];
 
     protected static function boot()

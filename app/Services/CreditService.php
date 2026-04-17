@@ -12,12 +12,14 @@ use Illuminate\Support\Facades\DB;
 class CreditService
 {
     protected $smsService;
-    protected $creditThreshold = 75; // Section 6.3: Threshold for SMS alert
-    protected $defaultCreditLoss = 10; // Default credit loss per missed activity
+    protected $commService;
+    protected $creditThreshold = 75;
+    protected $defaultCreditLoss = 10;
 
-    public function __construct(WebasistSmsService $smsService)
+    public function __construct(WebasistSmsService $smsService, CommunicationService $commService)
     {
         $this->smsService = $smsService;
+        $this->commService = $commService;
     }
 
     /**
@@ -108,23 +110,22 @@ class CreditService
     protected function sendLowCreditAlert(ParticipantProfile $profile)
     {
         $message = "KADEME Bilgilendirme: Krediniz {$profile->credits}'e düştü. Bir programa daha katılmazsanız sistemden çıkarılacaksınız.";
-        
+
         // SMS Gönderimi
         $this->smsService->sendSms($profile->phone, $message);
-        
-        // Email Gönderimi (Section 11.4)
+
+        // Email Gönderimi
         $user = $profile->user;
         if ($user) {
-            $commService = app(\App\Services\CommunicationService::class);
-            $commService->sendEmail(
-                $user->id, 
-                $user->email, 
-                'Kritik Kredi Uyarısı', 
-                "Merhaba {$user->name},\n\nKADEME projelerindeki katılım krediniz kritik seviye olan {$profile->credits} puana düşmüştür. Şartnamemiz gereği kredi eşiği altına düşen katılımcıların programla ilişiği kesilebilmektedir. Lütfen faaliyetlere katılımınız konusunda hassasiyet gösteriniz."
+            $this->commService->sendEmail(
+                $user->id,
+                $user->email,
+                'Kritik Kredi Uyardısı',
+                "Merhaba {$user->name},\n\nKADEME projelerindeki katılım krediniz kritik seviye olan {$profile->credits} puana düşmüştür. Lütfen faaliyetlere katılımınız konusunda hassasiyet gösteriniz."
             );
         }
 
-        Log::info("Low credit alerts (SMS & Email) triggered for user {$profile->user_id}");
+        Log::info("Low credit alert triggered for user {$profile->user_id}");
     }
 
     /**
@@ -134,15 +135,14 @@ class CreditService
     {
         $message = "KADEME Yönetimi: Mazeretsiz 3 devamsızlık sınırını aştığınız için sistem kaydınız otomatik olarak kara listeye alınmıştır.";
         $this->smsService->sendSms($profile->phone, $message);
-        
+
         $user = $profile->user;
         if ($user) {
-            $commService = app(\App\Services\CommunicationService::class);
-            $commService->sendEmail(
-                $user->id, 
-                $user->email, 
-                'Kara Liste Bilgilendirmesi', 
-                "Merhaba {$user->name},\n\nKADEME projelerindeki faaliyetlere mazeretsiz olarak 3 kez katılmadığınız tespit edilmiştir. Şartnamemiz gereği kaydınız otomatik olarak dondurulmuş (Kara Liste - Blacklist) statüsüne çekilmiştir. Belirlenen süre boyunca yeni bir programa başvuru yapamayacaksınız."
+            $this->commService->sendEmail(
+                $user->id,
+                $user->email,
+                'Kara Liste Bilgilendirmesi',
+                "Merhaba {$user->name},\n\nKADEME projelerindeki faaliyetlere mazeretsiz olarak 3 kez katılmadığınız tespit edilmiştir. Kaydınız otomatik olarak dondurulmuş (Kara Liste) statüsüne çekilmiştir."
             );
         }
         Log::info("Blacklist alert sent to user {$profile->user_id}");

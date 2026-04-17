@@ -82,42 +82,15 @@ class AuthController extends Controller
             $user = Auth::user();
             /** @var User $user */
             $token = $user->createToken('kademe-token')->plainTextToken;
-
             $roles = $user->getRoleNames();
-            
-            // 2FA Admin Kontrolü (Madde 11.12)
-            $requires2FA = false;
-            if ($roles->contains('super-admin') || $roles->contains('coordinator')) {
-                $requires2FA = true;
-                
-                // 2FA Kodu Üret ve Mail Gönder
-                $twoFactorCode = rand(100000, 999999);
-                $user->update([
-                    'two_factor_secret' => $twoFactorCode,
-                    'two_factor_confirmed_at' => null
-                ]);
 
-                // Sunucu yorgunlugu olusturup login islemini dondurmamasi icin 2FA maili simdilik deaktif
-                /*
-                try {
-                    $commService = app(\App\Services\CommunicationService::class);
-                    $commService->sendEmail(
-                        $user->id,
-                        $user->email,
-                        "KADEME Giriş Güvenlik Kodu",
-                        "Merhaba {$user->name},\n\nSisteme giriş yapabilmek için güvenlik kodunuz: {$twoFactorCode}\n\nEğer bu girişi siz yapmadıysanız lütfen şifrenizi değiştirin."
-                    );
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error("2FA Mail hatası: " . $e->getMessage());
-                }
-                */
-            }
-
+            // 2FA henüz aktif değil (SMS/mail entegrasyonu yapılandırılmadı)
+            // İleride bu blok aktif edilecek: requires_2fa=true + mail gönderimi
             return response()->json([
                 'user' => $user->load('roles'),
                 'token' => $token,
                 'roles' => $roles,
-                'requires_2fa' => $requires2FA,
+                'requires_2fa' => false,
             ]);
         }
 

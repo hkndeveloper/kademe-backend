@@ -5,11 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ParticipantProfile;
 use App\Models\User;
+use App\Services\CommunicationService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ParticipantController extends Controller
 {
+    protected $commService;
+
+    public function __construct(CommunicationService $commService)
+    {
+        $this->commService = $commService;
+    }
     public function index(Request $request)
     {
         $query = $this->buildFilterQuery($request);
@@ -285,15 +292,18 @@ class ParticipantController extends Controller
             'blacklist_reason' => $request->reason ?? 'Admin kararıyla'
         ]);
 
-        // Send notification SMS
-        $commService = app(\App\Services\CommunicationService::class);
-        $message = "SİSTEMDEN ÇIKARILDINIZ: Hesabınız kara listeye alınmıştır. Detaylar için koordinatörle iletişime geçiniz.";
-        $commService->sendSms($participant->user_id, $participant->phone, $message);
-
-        // Send notification Email
         $user = $participant->user;
         if ($user) {
-            $commService->sendEmail(
+            // SMS bildirimi
+            if ($participant->phone) {
+                $this->commService->sendSms(
+                    $user->id,
+                    $participant->phone,
+                    "SİSTEMDEN ÇIKARILDINIZ: Hesabınız kara listeye alınmıştır. Detaylar için koordinatörle iletişime geçiniz."
+                );
+            }
+            // Email bildirimi
+            $this->commService->sendEmail(
                 $user->id,
                 $user->email,
                 'KADEME Sistem Bilgilendirmesi: Hesabınız Kısıtlandı',
@@ -362,19 +372,17 @@ class ParticipantController extends Controller
     private function convertToAlumni($userId)
     {
         $user = User::findOrFail($userId);
-        
-        // Assign alumni role
+
         if (!$user->hasRole('alumni')) {
             $user->assignRole('alumni');
         }
 
-        // Update participant profile status
-        $profile = $participant = ParticipantProfile::where('user_id', $userId)->first();
+        // Profili güncelle (değişken karışıklığı düzeltildi)
+        $profile = ParticipantProfile::where('user_id', $userId)->first();
         if ($profile) {
             $profile->update(['status' => 'alumni']);
         }
 
-        // Log the transition
         \App\Helpers\AuditHelper::log(
             'convert_to_alumni',
             'User',
