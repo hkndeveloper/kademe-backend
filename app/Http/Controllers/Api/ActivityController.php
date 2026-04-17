@@ -30,9 +30,9 @@ class ActivityController extends Controller
             $query->where('project_id', $request->project_id);
         }
 
-        $activities = $query->with('project')->paginate(15);
+        $activities = $query->with('project')->get();
         
-        $activities->getCollection()->transform(function ($activity) use ($user) {
+        $activities->transform(function ($activity) use ($user) {
             if ($user) {
                 $activity->has_attended = \App\Models\Attendance::where('user_id', $user->id)
                     ->where('activity_id', $activity->id)

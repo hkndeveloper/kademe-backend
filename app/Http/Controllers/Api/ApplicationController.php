@@ -109,7 +109,7 @@ class ApplicationController extends Controller
             $query->whereIn('project_id', $user->coordinatedProjects->pluck('id'));
         }
 
-        $applications = $query->latest()->paginate(15);
+        $applications = $query->latest()->get();
         return response()->json($applications);
     }
 
