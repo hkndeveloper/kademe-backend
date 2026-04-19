@@ -3,17 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Activity extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'project_id', 'name', 'description', 'type', 'room_name', 'start_time', 'end_time',
         'latitude', 'longitude', 'radius', 'qr_code_secret', 'google_calendar_event_id',
-        'google_calendar_last_synced_at', 'credit_loss_amount', 'is_active'
+        'google_calendar_last_synced_at', 'credit_loss_amount', 'is_active', 'is_pinned'
     ];
 
     protected $casts = [
@@ -22,6 +23,7 @@ class Activity extends Model
         'latitude' => 'float',
         'longitude' => 'float',
         'is_active' => 'boolean',
+        'is_pinned' => 'boolean',
         'google_calendar_last_synced_at' => 'datetime',
     ];
 

@@ -34,14 +34,21 @@ class ProjectController extends Controller
 
     public function getPublicStats()
     {
+        $settings = \App\Models\Setting::where('group', 'home')->get()->keyBy('key');
+        $manualEnabled = ($settings['manual_stats_enabled']->value ?? 'false') === 'true';
+
+        if ($manualEnabled && isset($settings['manual_stats_json'])) {
+            return response()->json(json_decode($settings['manual_stats_json']->value, true));
+        }
+
         $alumniCount = \App\Models\ParticipantProfile::where('status', 'alumni')->count() ?? 0;
         $projectsCount = \App\Models\Project::where('is_active', true)->count() ?? 0;
         $activitiesCount = \App\Models\Activity::count() ?? 0;
         
         $satisfaction = 100;
         try {
-            if (\Schema::hasTable('activity_feedback')) {
-                $avgRow = \DB::table('activity_feedback')->avg('rating');
+            if (\Schema::hasTable('feedback')) {
+                $avgRow = \DB::table('feedback')->avg('rating');
                 if ($avgRow) {
                     $satisfaction = min(100, round(($avgRow / 5) * 100));
                 }
@@ -49,10 +56,10 @@ class ProjectController extends Controller
         } catch (\Exception $e) {}
 
         return response()->json([
-            'alumni_count' => $alumniCount,
+            'alumni_count' => $alumniCount . "+",
             'active_projects' => $projectsCount,
             'total_activities' => $activitiesCount,
-            'satisfaction_rate' => $satisfaction
+            'satisfaction_rate' => "%" . $satisfaction
         ]);
     }
 
@@ -68,6 +75,7 @@ class ProjectController extends Controller
             'period' => 'nullable|string',
             'application_deadline' => 'nullable|date',
             'is_active' => 'boolean',
+            'is_pinned' => 'boolean',
             'timeline' => 'nullable', 
             'coordinator_ids' => 'nullable|array',
             'coordinator_ids.*' => 'exists:users,id',
@@ -157,6 +165,7 @@ class ProjectController extends Controller
                 'period' => 'nullable|string',
                 'application_deadline' => 'nullable|date',
                 'is_active' => 'boolean',
+                'is_pinned' => 'boolean',
                 'timeline' => 'nullable', 
                 'coordinator_ids' => 'nullable|array',
                 'coordinator_ids.*' => 'exists:users,id',
@@ -229,10 +238,22 @@ class ProjectController extends Controller
     public function destroy(Project $project)
     {
         if (!auth()->user()->hasRole('super-admin')) {
-            return response()->json(['message' => 'Sadece Üst Admin proje silebilir.'], 403);
+            return response()->json(['message' => 'Sadece Üst Admin proje arşivleyebilir.'], 403);
         }
 
         $project->delete();
-        return response()->json(['message' => 'Proje silindi.']);
+        return response()->json(['message' => 'Proje arşivlendi.']);
+    }
+
+    public function restore($id)
+    {
+        if (!auth()->user()->hasRole('super-admin')) {
+            return response()->json(['message' => 'Yetkiniz yok.'], 403);
+        }
+
+        $project = Project::withTrashed()->findOrFail($id);
+        $project->restore();
+
+        return response()->json(['message' => 'Proje geri yüklendi.']);
     }
 }

@@ -31,24 +31,9 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/register', [AuthController::class, 'register']);
 
-// Test maili (geliştiriciler için)
-Route::get('/test-mail', function (\Illuminate\Http\Request $request) {
-    $email = $request->query('email');
-    if (!$email) {
-        return response()->json(['message' => 'Lütfen bir email adresi belirtin. Örn: /api/test-mail?email=test@mail.com'], 400);
-    }
-    $commService = app(\App\Services\CommunicationService::class);
-    $commService->sendEmail(
-        null,
-        $email,
-        'KADEME Sistem Testi',
-        'Bu mesaj, SMTP ayarlarınızın çalıştığını doğrulamak amacıyla gönderilmiştir. Tebrikler!'
-    );
-    return response()->json(['message' => 'Test maili ' . $email . ' adresine gönderildi.']);
-});
-
 Route::get('/public-stats', [PublicController::class, 'getStats']);
 Route::get('/public-projects/{id}', [PublicController::class, 'getProjectDetails']);
+Route::get('/public-home', [PublicController::class, 'getHomeContent']);
 Route::get('/projects', [ProjectController::class, 'index']);
 Route::get('/projects/{project}', [ProjectController::class, 'show']);
 Route::get('/cv/{uuid}', [CVController::class, 'show']);
@@ -89,12 +74,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/blacklist', [AdminController::class, 'getBlacklistedUsers']);
     Route::post('/admin/users/{userId}/adjust-credits', [AdminController::class, 'adjustCredits']);
 
-    // Projeler
     Route::apiResource('projects', ProjectController::class)->except(['index', 'show']);
+    Route::post('/projects/{project}/restore', [ProjectController::class, 'restore']);
     Route::post('/projects/{project}/bulk-attendance', [ProjectController::class, 'bulkAttendance']);
 
     // Faaliyetler
     Route::apiResource('activities', ActivityController::class)->except(['index']);
+    Route::post('/activities/{activity}/restore', [ActivityController::class, 'restore']);
 
     // ─── Katılımcılar (ÖNEMLİ: özel rotalar apiResource'tan ÖNCE) ────────────
     Route::get('/participants/export/csv', [ParticipantController::class, 'exportCsv']);

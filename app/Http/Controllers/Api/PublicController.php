@@ -15,18 +15,46 @@ class PublicController extends Controller
      */
     public function getStats()
     {
+        $settings = \App\Models\Setting::where('group', 'home')->get()->keyBy('key');
+        $manualEnabled = ($settings['manual_stats_enabled']->value ?? 'false') === 'true';
+
+        if ($manualEnabled && isset($settings['manual_stats_json'])) {
+            return response()->json(json_decode($settings['manual_stats_json']->value, true));
+        }
+
         $alumniCount = User::role('alumni')->count();
         $activeProjects = Project::where('is_active', true)->count();
         $totalActivities = Activity::count();
         
-        // Memnuniyet oranı ileride feedback eklendiğinde dinamiklesebilir, şimdilik sabit
         $satisfactionRate = 96; 
 
         return response()->json([
-            'alumni_count' => $alumniCount,
+            'alumni_count' => $alumniCount . "+",
             'active_projects' => $activeProjects,
             'total_activities' => $totalActivities,
-            'satisfaction_rate' => $satisfactionRate
+            'satisfaction_rate' => "%" . $satisfactionRate
+        ]);
+    }
+
+    /**
+     * Anasayfadaki tüm dinamik içeriği (Pinned Projeler, Faaliyetler, Ayarlar) tek seferde döner.
+     */
+    public function getHomeContent()
+    {
+        $pinnedProjects = Project::where('is_pinned', true)->where('is_active', true)->get();
+        $pinnedActivities = Activity::where('is_pinned', true)->with('project')->get();
+        
+        $settings = \App\Models\Setting::all()->keyBy('key');
+        
+        return response()->json([
+            'pinned_projects' => $pinnedProjects,
+            'pinned_activities' => $pinnedActivities,
+            'settings' => [
+                'mission' => $settings['mission_text']->value ?? '',
+                'vision' => $settings['vision_text']->value ?? '',
+                'insta_feed' => json_decode($settings['insta_feed_json']->value ?? '[]', true),
+                'stats' => $this->getStats()->original
+            ]
         ]);
     }
 

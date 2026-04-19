@@ -10,15 +10,14 @@ class Project extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'name', 'slug', 'description', 'location', 'capacity', 'logo', 'is_active',
+        'name', 'slug', 'description', 'location', 'capacity', 'logo', 'is_active', 'is_pinned',
         'application_deadline', 'format', 'period', 'sub_description', 'timeline', 'documents'
-    ];
 
     protected $casts = [
         'timeline' => 'array',
         'documents' => 'array',
         'is_active' => 'boolean',
+        'is_pinned' => 'boolean',
         'application_deadline' => 'date'
     ];
 

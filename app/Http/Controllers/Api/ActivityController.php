@@ -22,6 +22,10 @@ class ActivityController extends Controller
         $user = auth('sanctum')->user();
         $query = Activity::query();
         
+        if ($request->boolean('include_archived')) {
+            $query->withTrashed();
+        }
+        
         if ($user && $user->hasRole('coordinator') && !$user->hasRole('super-admin')) {
             $query->whereIn('project_id', $user->coordinatedProjects->pluck('id'));
         }
@@ -87,6 +91,7 @@ class ActivityController extends Controller
             'longitude' => 'nullable|numeric',
             'radius' => 'nullable|integer',
             'credit_loss_amount' => 'nullable|integer',
+            'is_pinned' => 'boolean',
         ]);
 
         $validated['qr_code_secret'] = Str::random(32);
@@ -133,6 +138,7 @@ class ActivityController extends Controller
             'radius' => 'nullable|integer',
             'credit_loss_amount' => 'nullable|integer',
             'is_active' => 'boolean',
+            'is_pinned' => 'boolean',
         ]);
 
         $activity->update($validated);
@@ -148,7 +154,20 @@ class ActivityController extends Controller
         }
 
         $activity->delete();
-        return response()->json(['message' => 'Faaliyet silindi.']);
+        return response()->json(['message' => 'Faaliyet arşivlendi.']);
+    }
+
+    public function restore($id)
+    {
+        $user = auth()->user();
+        $activity = Activity::withTrashed()->findOrFail($id);
+        
+        if ($user) {
+            $this->authorize('manageProject', $activity->project);
+        }
+
+        $activity->restore();
+        return response()->json(['message' => 'Faaliyet geri yüklendi.']);
     }
     
     /**
