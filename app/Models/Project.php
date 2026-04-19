@@ -4,14 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Project extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
+    protected $fillable = [
         'name', 'slug', 'description', 'location', 'capacity', 'logo', 'is_active', 'is_pinned',
         'application_deadline', 'format', 'period', 'sub_description', 'timeline', 'documents'
+    ];
 
     protected $casts = [
         'timeline' => 'array',
