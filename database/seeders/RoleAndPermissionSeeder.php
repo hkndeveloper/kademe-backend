@@ -16,15 +16,23 @@ class RoleAndPermissionSeeder extends Seeder
         // Reset cached roles and permissions
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // 1. İzinleri (Permissions) Tanımla
+        // 1. İzinleri (Permissions) Tanımla - Frontend Ability İsimleriyle Senkronize
         $permissions = [
-            'manage_all_projects',   // Yalnızca Super Admin (global bypass)
-            'manage_project',        // Proje ayarlarını düzenleme
-            'evaluate_applications', // Başvuruları inceleme, kabul/red
-            'take_attendance',       // Yoklama başlatma / manuel yoklama girme
-            'upload_materials',      // Materyal yükleme / silme
-            'send_sms_email',        // İletişim araçlarını kullanma
-            'manage_forum',          // Forum mesajlarını yönetme
+            'view-dashboard',
+            'manage-projects',
+            'manage-participants',
+            'manage-blacklist',
+            'manage-applications',
+            'write-blog',
+            'view-audit-logs',
+            'manage-announcements',
+            'view-calendar',
+            'manage-coordinators',
+            'manage-gamification',
+            'manage-kpd',
+            'manage-settings',
+            'manage-permissions',
+            'manage-users',
         ];
 
         foreach ($permissions as $permission) {
@@ -33,12 +41,12 @@ class RoleAndPermissionSeeder extends Seeder
 
         // 2. Rolleri Tanımla
         $roles = [
-            'super-admin', // Her şeye yetkili
-            'coordinator', // Projedeki tüm işlemlere yetkili
-            'staff',       // Sadece yetki verildiği işlemlere (örn: yoklama) yetkili
-            'student',     // Katılımcı
-            'alumni',      // Mezun
-            'guest'        // Ziyaretçi
+            'super-admin',
+            'coordinator',
+            'staff',
+            'student',
+            'alumni',
+            'guest'
         ];
 
         $roleObjects = [];
@@ -50,19 +58,16 @@ class RoleAndPermissionSeeder extends Seeder
         // Super admin tüm izinleri alır
         $roleObjects['super-admin']->syncPermissions(Permission::all());
 
-        // Coordinator proje düzeyindeki tüm operasyonel izinleri alır
+        // Coordinator proje düzeyindeki operasyonel izinleri alır
         $roleObjects['coordinator']->syncPermissions([
-            'manage_project',
-            'evaluate_applications',
-            'take_attendance',
-            'upload_materials',
-            'send_sms_email',
-            'manage_forum',
+            'view-dashboard',
+            'manage-projects',
+            'manage-participants',
+            'manage-applications',
+            'view-calendar',
+            'manage-kpd',
         ]);
         
-        // Staff varsayılan olarak boş gelir, ara yüzden proje bazlı ekstra izin eklenecektir veya buraya varsayılan olarak eklenebilir
-        // Öğrenci, mezun ve ziyaretçi rolleri sistemde sadece statü belirler, ekstra admin paneli izni almazlar.
-
         // 4. İlk Sistem Yöneticisi
         $admin = User::firstOrCreate(
             ['email' => 'admin@kademe.org'],

@@ -177,4 +177,24 @@ Route::middleware('auth:sanctum')->group(function () {
     // ─── Oyunlaştırma / Rozet Kademeleri ─────────────────────────────────────
     Route::get('/badge-tiers', [BadgeTierController::class, 'index']);
     Route::apiResource('admin/badge-tiers', BadgeTierController::class)->except(['index']);
+
+    // --- Support & Messaging ---
+    Route::get('support', [SupportController::class, 'index']);
+    Route::get('support/{id}', [SupportController::class, 'show']);
+    Route::post('support', [SupportController::class, 'store']);
+    Route::post('support/{id}/reply', [SupportController::class, 'reply']);
+
+    // --- Dynamic Permissions & Master User Management ---
+    Route::group(['prefix' => 'admin', 'middleware' => ['role:super-admin']], function() {
+        // Roles & Permissions
+        Route::get('roles-permissions', [RolePermissionController::class, 'index']);
+        Route::post('roles', [RolePermissionController::class, 'storeRole']);
+        Route::put('roles/{role}/permissions', [RolePermissionController::class, 'syncPermissions']);
+
+        // Master User Management
+        Route::get('users', [AdminUserController::class, 'index']);
+        Route::put('users/{user}/roles', [AdminUserController::class, 'updateRole']);
+        Route::delete('users/{user}', [AdminUserController::class, 'destroy']);
+    });
 });
+

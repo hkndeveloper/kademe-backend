@@ -8,6 +8,7 @@ use App\Models\ProjectMaterial;
 use App\Models\Application;
 use App\Models\KpdReport;
 use App\Models\Badge;
+use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
@@ -24,7 +25,7 @@ class StudentController extends Controller
             ->pluck('project_id');
 
         $materials = ProjectMaterial::whereIn('project_id', $projectIds)
-            ->with('project')
+            ->with('project:id,name')
             ->latest()
             ->get();
 
@@ -42,7 +43,7 @@ class StudentController extends Controller
     }
 
     /**
-     * KPD Raporlarım: Gizli psikolojik raporlar
+     * KPD Raporlarım: Psikolojik raporlar
      */
     public function getReports()
     {
@@ -52,14 +53,12 @@ class StudentController extends Controller
     }
 
     /**
-     * Sertifikalarım: Tamamlanan/Mezun olunan projelerin listesi
+     * Sertifikalarım: Tamamlanan projelerin listesi
      */
     public function getCertificates()
     {
         $user = auth()->user();
         
-        // Bu örnekte mezuniyet statüsü henüz tam oturmadıysa, 
-        // kabul edildiği projeleri listeliyoruz (İleride 'graduated' filtresi eklenebilir)
         $projects = Application::where('user_id', $user->id)
             ->where('status', 'accepted')
             ->with('project')
@@ -77,10 +76,10 @@ class StudentController extends Controller
         $user = auth()->user();
         $report = KpdReport::where('id', $id)->where('user_id', $user->id)->firstOrFail();
 
-        if (!\Illuminate\Support\Facades\Storage::exists($report->file_path)) {
+        if (!Storage::exists($report->file_path)) {
             return response()->json(['message' => 'Rapor dosyası bulunamadı.'], 404);
         }
 
-        return \Illuminate\Support\Facades\Storage::download($report->file_path, "KADEME_Rapor_{$report->id}.pdf");
+        return Storage::download($report->file_path, "KADEME_Rapor_{$report->id}.pdf");
     }
 }
