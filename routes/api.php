@@ -23,6 +23,14 @@ use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\PublicController;
 use App\Http\Controllers\Api\ProjectMaterialController;
 use App\Http\Controllers\Api\ForumController;
+use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\FaqController;
+use App\Http\Controllers\Api\InstagramPostController;
+use App\Http\Controllers\Api\SliderController;
+use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\SupportController;
+use App\Http\Controllers\Api\RolePermissionController;
+use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\KpdAppointmentController;
 
 use Illuminate\Support\Facades\Route;
