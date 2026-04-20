@@ -55,29 +55,33 @@ class RoleAndPermissionSeeder extends Seeder
             'guest'
         ];
 
-        $roleObjects = [];
         foreach ($roles as $roleName) {
-            $roleObjects[$roleName] = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
-            Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'api']);
+            foreach (['web', 'api'] as $guard) {
+                Role::firstOrCreate(['name' => $roleName, 'guard_name' => $guard]);
+            }
         }
 
         // 3. Rollere İzinleri Atama
-        // Super admin tüm izinleri alır
-        $roleObjects['super-admin']->syncPermissions(Permission::all());
+        foreach (['web', 'api'] as $guard) {
+            $superAdmin = Role::findByName('super-admin', $guard);
+            $superAdmin->syncPermissions(Permission::where('guard_name', $guard)->get());
 
-        // Coordinator proje düzeyindeki operasyonel izinleri alır
-        $roleObjects['coordinator']->syncPermissions([
-            'view-dashboard',
-            'manage-projects',
-            'manage_project',
-            'manage-participants',
-            'manage-applications',
-            'evaluate_applications',
-            'view-calendar',
-            'take_attendance',
-            'manage-kpd',
-            'upload_materials',
-        ]);
+            $coordinator = Role::findByName('coordinator', $guard);
+            $coordinator->syncPermissions(
+                Permission::whereIn('name', [
+                    'view-dashboard',
+                    'manage-projects',
+                    'manage_project',
+                    'manage-participants',
+                    'manage-applications',
+                    'evaluate_applications',
+                    'view-calendar',
+                    'take_attendance',
+                    'manage-kpd',
+                    'upload_materials',
+                ])->where('guard_name', $guard)->get()
+            );
+        }
         
         // 4. İlk Sistem Yöneticisi
         $admin = User::firstOrCreate(
