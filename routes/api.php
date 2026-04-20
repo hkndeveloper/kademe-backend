@@ -115,6 +115,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/applications/{application}/status', [ApplicationController::class, 'updateStatus']);
     Route::post('/applications/{projectId}/invite-next', [ApplicationController::class, 'inviteNextFromWaitlist']);
     Route::put('/applications/{projectId}/waitlist-order', [ApplicationController::class, 'reorderWaitlist']);
+    Route::put('/applications/{application}/interview', [ApplicationController::class, 'updateInterview']);
 
     // ─── Otomatik Eleme Kriterleri (Controller'lar henüz yok, o sebeple yoruma alındı) ───
     // Route::get('/projects/{project}/rejection-criteria', [\App\Http\Controllers\Api\RejectionCriteriaController::class, 'index']);
@@ -177,6 +178,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // ─── Oyunlaştırma / Rozet Kademeleri ─────────────────────────────────────
     Route::get('/badge-tiers', [BadgeTierController::class, 'index']);
     Route::apiResource('admin/badge-tiers', BadgeTierController::class)->except(['index']);
+
+    // CMS Modules
+    Route::apiResource('admin/faqs', FaqController::class);
+    Route::apiResource('admin/instagram-posts', InstagramPostController::class);
+    Route::apiResource('admin/sliders', SliderController::class);
 
     // --- Support & Messaging ---
     Route::get('support', [SupportController::class, 'index']);

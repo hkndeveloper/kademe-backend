@@ -122,7 +122,7 @@ class ApplicationController extends Controller
         }
 
         $request->validate([
-            'status' => 'required|in:accepted,rejected,waitlisted,pending'
+            'status' => 'required|in:accepted,rejected,waitlisted,pending,interviewed'
         ]);
 
         $oldStatus = $application->status;
@@ -223,5 +223,44 @@ class ApplicationController extends Controller
         }
 
         return response()->json(['message' => 'Yedek listesi sıralaması güncellendi.']);
+    }
+
+    /**
+     * Mülakat Bilgilerini Güncelle (Phase 2)
+     */
+    public function updateInterview(Request $request, Application $application)
+    {
+        $user = auth()->user();
+        if ($user) {
+            $this->authorize('evaluateApplications', $application->project);
+        }
+
+        $request->validate([
+            'interview_date' => 'nullable|date',
+            'interview_location' => 'nullable|string|max:255',
+            'interview_status' => 'nullable|in:invited,completed,no-show'
+        ]);
+
+        $application->update($request->only(['interview_date', 'interview_location', 'interview_status']));
+
+        // Eğer mülakata çağırıldıysa bildirim gönder (Simüle)
+        if ($request->interview_status === 'invited') {
+            $application->update(['status' => 'interviewed']);
+            
+            try {
+                $user = User::find($application->user_id);
+                $commService = app(\App\Services\CommunicationService::class);
+                $dateStr = \Carbon\Carbon::parse($application->interview_date)->format('d.m.Y H:i');
+                
+                $subject = 'Mülakat Daveti: ' . $application->project->name;
+                $content = "Merhaba {$user->name},\n\n{$application->project->name} başvurunuz ön değerlendirmeyi geçmiştir. Sizi {$dateStr} tarihinde {$application->interview_location} lokasyonunda yapılacak mülakata davet ediyoruz.";
+                
+                $commService->sendEmail($user->id, $user->email, $subject, $content);
+            } catch (\Exception $e) {
+                \Log::error("Interview notification failed: " . $e->getMessage());
+            }
+        }
+
+        return response()->json(['message' => 'Mülakat bilgileri güncellendi.', 'application' => $application]);
     }
 }
