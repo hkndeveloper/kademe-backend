@@ -20,23 +20,29 @@ class RoleAndPermissionSeeder extends Seeder
         $permissions = [
             'view-dashboard',
             'manage-projects',
+            'manage_project',
             'manage-participants',
             'manage-blacklist',
             'manage-applications',
+            'evaluate_applications',
             'write-blog',
             'view-audit-logs',
             'manage-announcements',
+            'send_sms_email',
             'view-calendar',
+            'take_attendance',
             'manage-coordinators',
             'manage-gamification',
             'manage-kpd',
             'manage-settings',
             'manage-permissions',
             'manage-users',
+            'upload_materials',
         ];
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'api']);
         }
 
         // 2. Rolleri Tanımla
@@ -52,6 +58,7 @@ class RoleAndPermissionSeeder extends Seeder
         $roleObjects = [];
         foreach ($roles as $roleName) {
             $roleObjects[$roleName] = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+            Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'api']);
         }
 
         // 3. Rollere İzinleri Atama
@@ -62,10 +69,14 @@ class RoleAndPermissionSeeder extends Seeder
         $roleObjects['coordinator']->syncPermissions([
             'view-dashboard',
             'manage-projects',
+            'manage_project',
             'manage-participants',
             'manage-applications',
+            'evaluate_applications',
             'view-calendar',
+            'take_attendance',
             'manage-kpd',
+            'upload_materials',
         ]);
         
         // 4. İlk Sistem Yöneticisi
