@@ -12,9 +12,21 @@ class Project extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'name', 'slug', 'description', 'location', 'capacity', 'logo', 'is_active', 'is_pinned',
+        'name', 'project_code', 'slug', 'description', 'location', 'capacity', 'logo', 'is_active', 'is_pinned',
         'application_deadline', 'format', 'period', 'sub_description', 'timeline', 'documents'
     ];
+
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted()
+    {
+        static::creating(function ($project) {
+            if (empty($project->slug)) {
+                $project->slug = \Illuminate\Support\Str::slug($project->name);
+            }
+        });
+    }
 
     protected $casts = [
         'timeline' => 'array',

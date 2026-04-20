@@ -16,6 +16,7 @@ class ProjectSeeder extends Seeder
         // 1. Diplomasi360
         $d360 = Project::create([
             'name' => 'Diplomasi360',
+            'slug' => 'diplomasi360',
             'project_code' => 'D360',
             'description' => 'Küresel meseleleri ve diplomasi dünyasını 360 derece perspektiften inceleyen prestijli bir eğitim programıdır.',
             'is_active' => true,
@@ -24,6 +25,7 @@ class ProjectSeeder extends Seeder
         // 2. KADEME+
         $kp = Project::create([
             'name' => 'KADEME+',
+            'slug' => 'kademe-plus',
             'project_code' => 'KP-01',
             'description' => 'Gençlerin kariyer gelişimlerini destekleyen, profesyonel yetkinlik odaklı gelişim programı.',
             'is_active' => true,
@@ -32,6 +34,7 @@ class ProjectSeeder extends Seeder
         // 3. Eurodesk
         $ed = Project::create([
             'name' => 'Eurodesk',
+            'slug' => 'eurodesk',
             'project_code' => 'ED-TR',
             'description' => 'Avrupa fırsatları, gençlik hareketliliği ve projeleri hakkında bilgilendirme sunan resmi temas noktası.',
             'is_active' => true,

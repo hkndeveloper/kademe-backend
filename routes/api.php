@@ -183,6 +183,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('admin/faqs', FaqController::class);
     Route::apiResource('admin/instagram-posts', InstagramPostController::class);
     Route::apiResource('admin/sliders', SliderController::class);
+    Route::apiResource('admin/blogs', PostController::class);
+    Route::get('admin/audit-logs', [AuditLogController::class, 'index']);
 
     // --- Support & Messaging ---
     Route::get('support', [SupportController::class, 'index']);
