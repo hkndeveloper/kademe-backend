@@ -73,7 +73,7 @@ class RoleAndPermissionSeeder extends Seeder
             ['email' => 'admin@kademe.org'],
             [
                 'name' => 'KADEME Üst Admin',
-                'password' => Hash::make('12ytrmhkn_46'),
+                'password' => Hash::make('password123'),
             ]
         );
 
