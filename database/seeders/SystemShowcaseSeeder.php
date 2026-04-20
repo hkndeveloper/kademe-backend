@@ -73,7 +73,8 @@ class SystemShowcaseSeeder extends Seeder
                 'uploaded_by' => 1,
                 'title' => $project->name . ' Eğitim Kitapçığı',
                 'description' => 'Program boyunca kullanılacak ders notları ve kaynakça.',
-                'type' => 'document',
+                'file_type' => 'document',
+                'file_path' => 'materials/demo.pdf',
                 'external_link' => 'https://example.com/kitapcik'
             ]);
         }

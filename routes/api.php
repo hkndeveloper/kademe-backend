@@ -39,7 +39,9 @@ Route::get('/projects/{project}', [ProjectController::class, 'show']);
 Route::get('/cv/{uuid}', [CVController::class, 'show']);
 Route::get('/activities', [ActivityController::class, 'index']);
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
-Route::post('/contact', [ContactController::class, 'send']);
+Route::get('/contact', [ContactController::class, 'send']);
+Route::get('/blogs', [PostController::class, 'index']);
+Route::get('/blogs/{post:slug}', [PostController::class, 'show']);
 
 // ─── Protected Routes ─────────────────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
